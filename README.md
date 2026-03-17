@@ -1,6 +1,6 @@
-<<<<<<< HEAD
+
 # FlyWise
-=======
+
 # ✈ FlyWise — Smart Flight Booking App
 
 A full-stack MERN flight booking application with dynamic pricing, seat locking, and booking lifecycle management.
@@ -239,4 +239,3 @@ flywise/
 |------|-------|----------|
 | Admin | admin@flywise.com | admin123 |
 | User | user@flywise.com | user1234 |
->>>>>>> fdb26c0 (initial setup)
