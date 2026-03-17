@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getSeats, lockSeats, unlockSeats } from '../../utils/api';
+import { getSeats } from '../../utils/api';
 import toast from 'react-hot-toast';
 import './SeatMap.css';
 
@@ -9,7 +9,6 @@ const SeatMap = ({ flightId, maxSeats = 1, onSeatsSelected, userId }) => {
   const [seats, setSeats] = useState([]);
   const [selected, setSelected] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [locking, setLocking] = useState(false);
 
   useEffect(() => {
     loadSeats();
@@ -28,25 +27,30 @@ const SeatMap = ({ flightId, maxSeats = 1, onSeatsSelected, userId }) => {
   };
 
   const getSeat = (row, col) => seats.find(s => s.row === row && s.column === col);
-
   const maxRow = Math.max(...seats.map(s => s.row), 0);
 
   const getSeatClass = (seat) => {
     if (!seat) return 'seat-empty';
     if (seat.status === 'CONFIRMED') return 'seat-confirmed';
-    if (seat.status === 'LOCKED' && seat.lockedBy !== userId) return 'seat-locked';
+
+    // show locked visually but still clickable
+    if (seat.status === 'LOCKED' && seat.lockedBy !== userId)
+      return 'seat-locked';
+
     if (selected.includes(seat.seatNumber)) return 'seat-selected';
     if (seat.seatType === 'WINDOW') return 'seat-window';
     if (seat.seatType === 'AISLE') return 'seat-aisle';
+
     return 'seat-available';
   };
 
-  const handleSeatClick = async (seat) => {
+  const handleSeatClick = (seat) => {
     if (!seat) return;
     if (seat.status === 'CONFIRMED') return;
-    if (seat.status === 'LOCKED' && !selected.includes(seat.seatNumber)) return;
 
+    // ❗ allow click even if LOCKED (since we lock later)
     let newSelected;
+
     if (selected.includes(seat.seatNumber)) {
       newSelected = selected.filter(s => s !== seat.seatNumber);
     } else {
@@ -59,34 +63,18 @@ const SeatMap = ({ flightId, maxSeats = 1, onSeatsSelected, userId }) => {
 
     setSelected(newSelected);
 
-    if (newSelected.length > 0) {
-      try {
-        setLocking(true);
-        const res = await lockSeats({ flightId, seatNumbers: newSelected });
-        const updatedSeats = await getSeats(flightId);
-        setSeats(updatedSeats.data.seats);
-        onSeatsSelected(newSelected, res.data.lockExpiry);
-        toast.success(`${newSelected.length} seat(s) locked for 10 min`);
-      } catch (e) {
-        toast.error(e.response?.data?.message || 'Seat lock failed');
-        setSelected(selected);
-      } finally {
-        setLocking(false);
-      }
-    } else {
-      await unlockSeats({ flightId, seatNumbers: [seat.seatNumber] });
-      const updatedSeats = await getSeats(flightId);
-      setSeats(updatedSeats.data.seats);
-      onSeatsSelected([], null);
-    }
+    // 🔥 MOST IMPORTANT: update parent
+    onSeatsSelected(newSelected);
   };
 
-  if (loading) return (
-    <div className="seat-map-loading">
-      <div className="spinner spinner-lg" />
-      <p>Loading seat map...</p>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="seat-map-loading">
+        <div className="spinner spinner-lg" />
+        <p>Loading seat map...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="seat-map-wrap">
@@ -101,7 +89,6 @@ const SeatMap = ({ flightId, maxSeats = 1, onSeatsSelected, userId }) => {
       </div>
 
       <div className="airplane-body">
-        {/* Nose */}
         <div className="airplane-nose">✈ Front of Aircraft</div>
 
         {/* Column headers */}
@@ -125,10 +112,14 @@ const SeatMap = ({ flightId, maxSeats = 1, onSeatsSelected, userId }) => {
                 <React.Fragment key={col}>
                   {ci === 3 && <div className="aisle-gap" />}
                   <button
-                    className={`seat ${getSeatClass(seat)} ${locking ? 'seat-locking' : ''}`}
+                    className={`seat ${getSeatClass(seat)}`}
                     onClick={() => handleSeatClick(seat)}
                     title={seat ? `${seat.seatNumber} - ${seat.seatType} (${seat.status})` : ''}
-                    disabled={!seat || seat.status === 'CONFIRMED' || (seat.status === 'LOCKED' && !selected.includes(seat.seatNumber)) || locking}
+                    disabled={
+  !seat ||
+  seat.status === 'CONFIRMED' ||
+  (seat.status === 'LOCKED' && !selected.includes(seat.seatNumber))
+}
                   >
                     {row <= 3 ? '★' : ''}
                   </button>
@@ -139,7 +130,6 @@ const SeatMap = ({ flightId, maxSeats = 1, onSeatsSelected, userId }) => {
           </div>
         ))}
 
-        {/* Tail */}
         <div className="airplane-tail">🚪 Exit</div>
       </div>
 

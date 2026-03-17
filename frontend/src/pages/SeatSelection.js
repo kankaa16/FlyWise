@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useBooking } from '../context/BookingContext';
 import { useAuth } from '../context/AuthContext';
 import SeatMap from '../components/common/SeatMap';
-import { getFlightPrice } from '../utils/api';
+import { getFlightPrice,lockSeats } from '../utils/api';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import './SeatSelection.css';
@@ -32,32 +32,50 @@ const SeatSelection = () => {
 
   const passengers = searchParams.passengers || 1;
 
-  const handleSeatsSelected = async (seatNums, expiry) => {
-    setSelectedSeatNums(seatNums);
-    setLockExpiry(expiry);
-    if (seatNums.length > 0) {
-      try {
-        setLoadingPrice(true);
-        const res = await getFlightPrice(selectedFlight._id, { seatNumbers: seatNums, passengers });
-        setPricing(res.data.pricing);
-      } catch {
-        toast.error('Failed to calculate price');
-      } finally {
-        setLoadingPrice(false);
-      }
-    } else {
-      setPricing(null);
-    }
-  };
+  const handleSeatsSelected = async (seatNums) => {
+  setSelectedSeatNums(seatNums);
 
-  const handleContinue = () => {
-    if (selectedSeatNums.length < passengers) {
-      toast.error(`Please select ${passengers} seat(s)`);
-      return;
+  if (seatNums.length > 0) {
+    try {
+      setLoadingPrice(true);
+      const res = await getFlightPrice(selectedFlight._id, {
+        seatNumbers: seatNums,
+        passengers
+      });
+      setPricing(res.data.pricing);
+    } catch {
+      toast.error('Failed to calculate price');
+    } finally {
+      setLoadingPrice(false);
     }
+  } else {
+    setPricing(null);
+  }
+};
+
+  const handleContinue = async () => {
+  if (selectedSeatNums.length < passengers) {
+    toast.error(`Please select ${passengers} seat(s)`);
+    return;
+  }
+
+  try {
+  
+    const res = await lockSeats({
+      flightId: selectedFlight._id,
+      seatNumbers: selectedSeatNums
+    });
+    setLockExpiry(res.data.lockExpiry); 
     setSelectedSeats(selectedSeatNums);
-    navigate('/booking-summary');
-  };
+    navigate('/booking-summary',{
+      state: { lockExpiry: res.data.lockExpiry }
+    });
+
+  } catch (err) {
+  toast.error(err.response?.data?.message || 'Seats not available anymore');
+  setSelectedSeatNums([]); 
+}
+};
 
   const f = selectedFlight;
 

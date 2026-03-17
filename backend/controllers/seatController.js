@@ -1,7 +1,7 @@
 const Seat = require('../models/Seat');
 const Flight = require('../models/Flight');
 
-const LOCK_DURATION_MINUTES = 10; // seats auto-unlock after 10 min
+const LOCK_DURATION_MINUTES = 5; // seats auto-unlock after 5 min
 
 // Helper: release expired locks
 const releaseExpiredLocks = async (flightId) => {
