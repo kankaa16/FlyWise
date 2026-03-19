@@ -237,3 +237,137 @@
   .bc-flight-row { flex-direction: column; align-items: flex-start; }
   .bc-route-wrap { width: 100%; }
 }
+
+/* ===== PREMIUM TICKET ===== */
+
+.ticket-container {
+  width: 800px;
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+/* HEADER */
+.ticket-header {
+  background: linear-gradient(135deg, #1a73e8, #0052cc);
+  color: white;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ticket-title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.ticket-ref {
+  text-align: right;
+  font-size: 12px;
+}
+
+/* ROUTE */
+.ticket-route {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 25px;
+}
+
+.ticket-city {
+  text-align: center;
+}
+
+.ticket-code {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.ticket-time {
+  font-size: 14px;
+  color: #666;
+}
+
+.ticket-arrow {
+  font-size: 24px;
+  color: #1a73e8;
+}
+
+/* DIVIDER */
+.ticket-divider {
+  border-top: 2px dashed #ddd;
+  margin: 0 20px;
+}
+
+/* PASSENGERS */
+.ticket-section {
+  padding: 20px;
+}
+
+.ticket-section h3 {
+  font-size: 14px;
+  color: #777;
+  margin-bottom: 10px;
+}
+
+.ticket-passenger {
+  display: flex;
+  justify-content: space-between;
+  background: #f8f9fb;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+/* PRICE */
+.ticket-price-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.ticket-total {
+  font-size: 18px;
+  font-weight: bold;
+  border-top: 2px solid #000;
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+/* FOOTER */
+.ticket-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+}
+
+/* QR */
+.ticket-qr {
+  width: 80px;
+  height: 80px;
+  background: repeating-linear-gradient(
+    45deg,
+    #000,
+    #000 5px,
+    #fff 5px,
+    #fff 10px
+  );
+  border-radius: 6px;
+}
+
+/* THANK YOU */
+.ticket-note {
+  font-size: 12px;
+  color: #888;
+}
+
+
+.ticket-qr canvas {
+  border-radius: 6px;
+}

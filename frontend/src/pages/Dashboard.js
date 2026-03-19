@@ -4,6 +4,9 @@ import { getMyBookings, cancelBooking } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { QRCodeCanvas } from "qrcode.react";
 import './Dashboard.css';
 
 const fmtDate = (d) => format(new Date(d), 'dd MMM yyyy');
@@ -15,6 +18,9 @@ const statusColors = {
   CANCELLED: 'badge-red',
   PENDING: 'badge-amber',
 };
+
+
+
 
 const BookingCard = ({ booking, onCancel }) => {
   const f = booking.flightId;
@@ -51,6 +57,24 @@ const groupAddOns = (addOns = []) => {
 };
 
 const groupedAddOns = groupAddOns(booking.addOns);
+
+const downloadTicket = async () => {
+  const input = document.getElementById(`ticket-${booking._id}`);
+
+  if (!input) return;
+
+  const canvas = await html2canvas(input, { scale: 2 });
+  const imgData = canvas.toDataURL("image/png");
+
+  const pdf = new jsPDF("p", "mm", "a4");
+
+  const imgWidth = 210;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+  pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+
+  pdf.save(`FlyWise_Ticket_${booking.bookingRef}.pdf`);
+};
 
   return (
     <div className={`booking-card ${booking.bookingStatus === 'CANCELLED' ? 'cancelled' : ''}`}>
@@ -100,83 +124,119 @@ const groupedAddOns = groupAddOns(booking.addOns);
         <button className="btn btn-ghost btn-sm" onClick={() => setExpanded(!expanded)}>
           {expanded ? '▲ Hide Details' : '▼ View Details'}
         </button>
+        <button className="btn btn-primary btn-sm" onClick={downloadTicket}>
+  Download Ticket
+</button>
         {booking.bookingStatus === 'CONFIRMED' && (
           <button className="btn btn-danger btn-sm" onClick={handleCancel} disabled={cancelling}>
             {cancelling ? <><div className="spinner" /> Cancelling...</> : 'Cancel Booking'}
           </button>
+
         )}
       </div>
 
-      {expanded && (
-        <div className="bc-expanded">
-          <div className="bc-exp-section">
-            <div className="bc-exp-title">Passengers</div>
-            <div className="bc-passengers">
-              {booking.passengers?.map((p, i) => (
-                <div key={i} className="bc-passenger">
-                  <span className="bc-pax-num">{i + 1}</span>
-                  <span className="bc-pax-name">{p.name}</span>
-                  <span className="bc-pax-age">Age {p.age}</span>
-                  <span className="bc-pax-gender">{p.gender}</span>
-                  <span className="badge badge-blue">{p.seatNumber}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+      <div
+  id={`ticket-${booking._id}`}
+  style={{
+    position: "absolute",
+    left: "-9999px",
+  }}
+  className="ticket-container"
+>
 
-          <div className="bc-exp-section">
-            <div className="bc-exp-title">Price Breakdown</div>
-            <div className="bc-price-table">
-              <div className="bc-pr"><span>Base Fare</span><span>₹{booking.priceBreakdown?.basePrice?.toLocaleString('en-IN')}</span></div>
-              {booking.priceBreakdown?.demandSurcharge > 0 && <div className="bc-pr surcharge"><span>Demand Surcharge</span><span>+₹{booking.priceBreakdown.demandSurcharge?.toLocaleString('en-IN')}</span></div>}
-              {booking.priceBreakdown?.lastMinuteSurcharge > 0 && <div className="bc-pr surcharge"><span>Last-Minute Surcharge</span><span>+₹{booking.priceBreakdown.lastMinuteSurcharge?.toLocaleString('en-IN')}</span></div>}
-              {booking.priceBreakdown?.seatCharges > 0 && <div className="bc-pr"><span>Seat Charges</span><span>₹{booking.priceBreakdown.seatCharges?.toLocaleString('en-IN')}</span></div>}
-              <div className="bc-pr"><span>Taxes & GST</span><span>₹{booking.priceBreakdown?.taxes?.toLocaleString('en-IN')}</span></div>
-              {booking.priceBreakdown?.mealTotal > 0 && (
-      <div className="bc-pr">
+  {/* HEADER */}
+  <div className="ticket-header">
+    <div className="ticket-title">✈ FlyWise Boarding Pass</div>
+    <div className="ticket-ref">
+      <div>Booking Ref</div>
+      <strong>{booking.bookingRef}</strong>
+    </div>
+  </div>
+
+  {/* ROUTE */}
+  <div className="ticket-route">
+    <div className="ticket-city">
+      <div className="ticket-code">{f.source?.code}</div>
+      <div className="ticket-time">{fmtTime(f.departureTime)}</div>
+    </div>
+
+    <div className="ticket-arrow">✈</div>
+
+    <div className="ticket-city">
+      <div className="ticket-code">{f.destination?.code}</div>
+      <div className="ticket-time">{fmtTime(f.arrivalTime)}</div>
+    </div>
+  </div>
+
+  <div className="ticket-divider"></div>
+
+  {/* PASSENGERS */}
+  <div className="ticket-section">
+    <h3>PASSENGERS</h3>
+    {booking.passengers.map((p, i) => (
+      <div key={i} className="ticket-passenger">
+        <span>{p.name} ({p.gender}, {p.age})</span>
+        <span>{p.seatNumber}</span>
+      </div>
+    ))}
+  </div>
+
+  {/* PRICE */}
+  <div className="ticket-section">
+    <h3>PRICE DETAILS</h3>
+
+    <div className="ticket-price-row">
+      <span>Base Fare</span>
+      <span>₹{booking.priceBreakdown?.basePrice}</span>
+    </div>
+
+    <div className="ticket-price-row">
+      <span>Taxes</span>
+      <span>₹{booking.priceBreakdown?.taxes}</span>
+    </div>
+
+    {booking.priceBreakdown?.mealTotal > 0 && (
+      <div className="ticket-price-row">
         <span>Meals</span>
-        <span>+₹{booking.priceBreakdown.mealTotal.toLocaleString('en-IN')}</span>
+        <span>₹{booking.priceBreakdown.mealTotal}</span>
       </div>
     )}
 
     {booking.priceBreakdown?.baggageTotal > 0 && (
-      <div className="bc-pr">
+      <div className="ticket-price-row">
         <span>Baggage</span>
-        <span>+₹{booking.priceBreakdown.baggageTotal.toLocaleString('en-IN')}</span>
+        <span>₹{booking.priceBreakdown.baggageTotal}</span>
       </div>
     )}
-              <div className="bc-pr total"><span>Total</span><span>₹{booking.priceBreakdown?.totalPrice?.toLocaleString('en-IN')}</span></div>
-            </div>
-            {groupedAddOns.length > 0 && (
-  <div className="bc-exp-section">
-    <div className="bc-exp-title">Add-ons</div>
 
-    <div className="bc-addons-list">
-      {groupedAddOns.map((item, i) => (
-        <div key={i} className="bc-addon-item">
-          <span>
-            {item.type === "meal" ? "🍽" : "🧳"} {item.name}
-            {item.qty > 1 && ` (x${item.qty})`}
-          </span>
-
-          <span>
-            ₹{(item.price * item.qty).toLocaleString('en-IN')}
-          </span>
-        </div>
-      ))}
+    <div className="ticket-total">
+      Total ₹{booking.priceBreakdown?.totalPrice}
     </div>
   </div>
-)}
-          </div>
 
-          {booking.bookingStatus === 'CANCELLED' && (
-            <div className="bc-cancelled-notice">
-              Cancelled on {booking.cancelledAt ? fmtDate(booking.cancelledAt) : 'N/A'}
-              {booking.cancellationReason ? ` · ${booking.cancellationReason}` : ''}
-            </div>
-          )}
-        </div>
-      )}
+  {/* FOOTER */}
+  <div className="ticket-footer">
+    <div className="ticket-note">
+      Flight: {f.flightNumber} <br />
+      Date: {fmtDate(f.departureTime)}
+    </div>
+
+    <div className="ticket-qr">
+  <QRCodeCanvas
+    value={JSON.stringify({
+      bookingRef: booking.bookingRef,
+      name: booking.passengers[0]?.name,
+      flight: f.flightNumber,
+      from: f.source?.code,
+      to: f.destination?.code,
+      date: f.departureTime,
+    })}
+    size={80}
+  />
+</div>
+  </div>
+
+</div>
     </div>
   );
 };
