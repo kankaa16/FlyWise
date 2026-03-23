@@ -138,9 +138,15 @@ const Home = () => {
                     <div className="deal-from">from</div>
                     <div className="deal-price">{deal.price}</div>
                   </div>
-                  <button className="deal-btn" onClick={() => setForm(f => ({ ...f, source: deal.from, destination: deal.to }))}>
-                    Book Now
-                  </button>
+                  <button
+  className="deal-btn"
+  onClick={() => {
+    const url = `/flights?source=${encodeURIComponent(deal.from)}&destination=${encodeURIComponent(deal.to)}&passengers=1`;
+    navigate(url);
+  }}
+>
+  Book Now
+</button>
                 </div>
               </div>
             ))}
