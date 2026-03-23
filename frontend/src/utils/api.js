@@ -52,4 +52,10 @@ export const cancelBooking = (id, data) => API.put(`/bookings/${id}/cancel`, dat
 export const getAllBookings = () => API.get('/bookings/all');
 export const getStats = () => API.get('/bookings/stats');
 
+// Pricing Rules
+export const getPricingRules = () => API.get('/pricing-rules');
+export const createPricingRule = (data) => API.post('/pricing-rules', data);
+export const updatePricingRule = (id, data) => API.put(`/pricing-rules/${id}`, data);
+export const deletePricingRule = (id) => API.delete(`/pricing-rules/${id}`);
+
 export default API;

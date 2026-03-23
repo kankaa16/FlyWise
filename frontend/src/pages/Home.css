@@ -191,7 +191,7 @@
 /* Destinations */
 .dest-row {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
   padding-bottom: 8px;
@@ -206,22 +206,23 @@
 
 .dest-circle {
   width: 88px;
-  height: 88px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--blue-50), var(--blue-100));
-  margin: 0 auto 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  height: 110px;
+  border-radius: 35%;
+  margin: 7px auto 10px;
   position: relative;
-  border: 2.5px solid transparent;
-  background-clip: padding-box;
+  overflow: hidden;
   transition: transform 0.2s;
-  box-shadow: 0 0 0 2.5px var(--blue-200);
+  outline: 3.5px solid #cdd0d4;  /* replaces box-shadow + border */
+  outline-offset: 0px;
 }
-.dest-card:hover .dest-circle { transform: scale(1.06); box-shadow: 0 0 0 2.5px var(--blue-400); }
+.dest-card:hover .dest-circle { transform: scale(1.06); outline-color: var(--blue-400); }
 
-.dest-emoji { font-size: 30px; }
+.dest-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 
 .dest-new {
   position: absolute;

@@ -1,83 +1,120 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBooking } from '../context/BookingContext';
 import { useAuth } from '../context/AuthContext';
 import SeatMap from '../components/common/SeatMap';
-import { getFlightPrice,lockSeats } from '../utils/api';
+import { getFlightPrice, lockSeats } from '../utils/api';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import './SeatSelection.css';
 
-const fmt = (d) => format(new Date(d), 'HH:mm');
-const fmtDur = (m) => `${Math.floor(m/60)}h ${m%60}m`;
+const fmt    = (d) => format(new Date(d), 'HH:mm');
+const fmtDur = (m) => `${Math.floor(m / 60)}h ${m % 60}m`;
 
 const SeatSelection = () => {
   const navigate = useNavigate();
-  const { selectedFlight, searchParams, setSelectedSeats } = useBooking();
+  const { selectedFlight, searchParams, setSelectedSeats, setSeatPricingMap } = useBooking();
   const { user, isAuthenticated } = useAuth();
+
   const [selectedSeatNums, setSelectedSeatNums] = useState([]);
-  const [lockExpiry, setLockExpiry] = useState(null);
-  const [pricing, setPricing] = useState(null);
-  const [loadingPrice, setLoadingPrice] = useState(false);
+  const [lockExpiry, setLockExpiry]             = useState(null);
+  // seatPricing: { [seatNumber]: { base, appliedRules[], taxes, totalPrice } }
+  const [seatPricing, setSeatPricing]           = useState({});
+  const [fetchingSeat, setFetchingSeat]         = useState(null); // which seat is loading
 
-  if (!selectedFlight) {
-    navigate('/');
-    return null;
-  }
+  // Ref so handleSeatsSelected always sees latest seatPricing without stale closure
+  const seatPricingRef = useRef({});
 
-  if (!isAuthenticated) {
-    navigate('/login?redirect=/seats');
-    return null;
-  }
+  if (!selectedFlight) { navigate('/'); return null; }
+  if (!isAuthenticated) { navigate('/login?redirect=/seats'); return null; }
 
   const passengers = searchParams.passengers || 1;
+  const f          = selectedFlight;
 
-  const handleSeatsSelected = async (seatNums) => {
-  setSelectedSeatNums(seatNums);
+  // Called by SeatMap on every select / deselect
+  const handleSeatsSelected = async (newSeatNums) => {
+    const prev    = selectedSeatNums;
+    const added   = newSeatNums.filter(s => !prev.includes(s));
+    const removed = prev.filter(s => !newSeatNums.includes(s));
 
-  if (seatNums.length > 0) {
-    try {
-      setLoadingPrice(true);
-      const res = await getFlightPrice(selectedFlight._id, {
-        seatNumbers: seatNums,
-        passengers
-      });
-      setPricing(res.data.pricing);
-    } catch {
-      toast.error('Failed to calculate price');
-    } finally {
-      setLoadingPrice(false);
+    // Remove deselected seats from pricing map immediately
+    if (removed.length > 0) {
+      const updated = { ...seatPricingRef.current };
+      removed.forEach(s => delete updated[s]);
+      seatPricingRef.current = updated;
+      setSeatPricing({ ...updated });
     }
-  } else {
-    setPricing(null);
-  }
-};
+
+    setSelectedSeatNums(newSeatNums);
+
+    // Fetch pricing for each newly added seat
+    for (const seatNum of added) {
+      try {
+        setFetchingSeat(seatNum);
+        const res = await getFlightPrice(f._id, {
+          seatNumbers: [seatNum],
+          passengers: 1,
+        });
+        const p = res.data.pricing;
+        seatPricingRef.current = {
+          ...seatPricingRef.current,
+          [seatNum]: {
+            base:         p.basePrice,
+            appliedRules: p.appliedRules ?? [],
+            taxes:        p.taxes,
+            totalPrice:   p.totalPrice,
+          },
+        };
+        setSeatPricing({ ...seatPricingRef.current });
+      } catch (err) {
+        console.error('Price fetch failed for', seatNum, err.response?.data || err.message);
+        toast.error(`Failed to get price for seat ${seatNum}`);
+      } finally {
+        setFetchingSeat(null);
+      }
+    }
+  };
 
   const handleContinue = async () => {
-  if (selectedSeatNums.length < passengers) {
-    toast.error(`Please select ${passengers} seat(s)`);
-    return;
-  }
+    if (selectedSeatNums.length < passengers) {
+      toast.error(`Please select ${passengers} seat(s)`);
+      return;
+    }
+    try {
+      const res = await lockSeats({
+        flightId: f._id,
+        seatNumbers: selectedSeatNums,
+      });
+      setLockExpiry(res.data.lockExpiry);
+      setSelectedSeats(selectedSeatNums);
+      // Pass per-seat pricing map to BookingSummary via context
+      if (typeof setSeatPricingMap === 'function') {
+        setSeatPricingMap(seatPricingRef.current);
+      }
+      navigate('/booking-summary', { state: { lockExpiry: res.data.lockExpiry } });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Seats not available anymore');
+      setSelectedSeatNums([]);
+    }
+  };
 
-  try {
-  
-    const res = await lockSeats({
-      flightId: selectedFlight._id,
-      seatNumbers: selectedSeatNums
+  // ── Derived totals across all currently selected seats ──────────────────
+  const selectedPricings = selectedSeatNums.map(s => seatPricing[s]).filter(Boolean);
+
+  const runningBase = selectedPricings.reduce((sum, p) => sum + (p.base ?? 0), 0);
+  const runningTax  = selectedPricings.reduce((sum, p) => sum + (p.taxes ?? 0), 0);
+  const runningTotal = selectedPricings.reduce((sum, p) => sum + (p.totalPrice ?? 0), 0);
+
+  // Merge surcharges by name across all selected seats
+  const surchargeMap = {};
+  selectedPricings.forEach(p => {
+    (p.appliedRules ?? []).forEach(rule => {
+      surchargeMap[rule.name] = (surchargeMap[rule.name] ?? 0) + rule.charge;
     });
-    setLockExpiry(res.data.lockExpiry); 
-    setSelectedSeats(selectedSeatNums);
-    navigate('/booking-summary',{
-      state: { lockExpiry: res.data.lockExpiry }
-    });
+  });
+  const surchargeEntries = Object.entries(surchargeMap);
 
-  } catch (err) {
-  toast.error(err.response?.data?.message || 'Seats not available anymore');
-  setSelectedSeatNums([]); 
-}
-};
-
-  const f = selectedFlight;
+  const someLoading = fetchingSeat !== null;
 
   return (
     <div className="page-content seats-page">
@@ -85,7 +122,9 @@ const SeatSelection = () => {
         <div className="section">
           <button className="btn btn-ghost btn-sm" onClick={() => navigate(-1)}>← Back to Results</button>
           <h1 className="seats-title">Select Your Seats</h1>
-          <p className="seats-meta">Select {passengers} seat{passengers > 1 ? 's' : ''} for your journey</p>
+          <p className="seats-meta">
+            Select {passengers} seat{passengers > 1 ? 's' : ''} for your journey
+          </p>
         </div>
       </div>
 
@@ -142,27 +181,54 @@ const SeatSelection = () => {
             </div>
           )}
 
-          {/* Price breakdown */}
-          {loadingPrice && <div className="card price-loading"><div className="spinner" /><span>Calculating price...</span></div>}
-          {pricing && (
-            <div className="card price-card">
-              <h3 className="price-card-title">Price Breakdown</h3>
+          {/* ── Live price panel ── */}
+          <div className="card price-card">
+            <h3 className="price-card-title">
+              Price Breakdown
+              {someLoading && <span className="price-fetching-badge">Updating…</span>}
+            </h3>
+
+            {selectedSeatNums.length === 0 ? (
+              <p className="price-hint">Select a seat to see pricing</p>
+            ) : (
               <div className="price-rows">
-                <div className="price-row"><span>Base fare ({passengers} pax)</span><span>₹{pricing.basePrice?.toLocaleString('en-IN')}</span></div>
-                {pricing.demandSurcharge > 0 && <div className="price-row surcharge"><span>High demand surcharge</span><span>+₹{pricing.demandSurcharge?.toLocaleString('en-IN')}</span></div>}
-                {pricing.lastMinuteSurcharge > 0 && <div className="price-row surcharge"><span>Last-minute surcharge</span><span>+₹{pricing.lastMinuteSurcharge?.toLocaleString('en-IN')}</span></div>}
-                {pricing.seatCharges > 0 && <div className="price-row"><span>Seat charges</span><span>+₹{pricing.seatCharges?.toLocaleString('en-IN')}</span></div>}
-                <div className="price-row"><span>Taxes & GST (18%)</span><span>₹{pricing.taxes?.toLocaleString('en-IN')}</span></div>
+                <div className="price-row">
+                  <span>Base fare ({selectedPricings.length}/{passengers} seat{passengers > 1 ? 's' : ''})</span>
+                  <span>₹{runningBase.toLocaleString('en-IN')}</span>
+                </div>
+
+                {surchargeEntries.length > 0
+                  ? surchargeEntries.map(([name, total]) => (
+                      <div className="price-row surcharge" key={name}>
+                        <span>{name}</span>
+                        <span>+₹{total.toLocaleString('en-IN')}</span>
+                      </div>
+                    ))
+                  : selectedPricings.length > 0 && (
+                      <div className="price-row">
+                        <span style={{ color: '#94a3b8' }}>No surcharges apply</span>
+                      </div>
+                    )
+                }
+
+                <div className="price-row">
+                  <span>Taxes &amp; GST (18%)</span>
+                  <span>₹{runningTax.toLocaleString('en-IN')}</span>
+                </div>
+
                 <hr className="divider" />
-                <div className="price-row total"><span>Total</span><span>₹{pricing.totalPrice?.toLocaleString('en-IN')}</span></div>
+                <div className="price-row total">
+                  <span>Total {selectedSeatNums.length < passengers ? `(so far)` : ''}</span>
+                  <span>₹{runningTotal.toLocaleString('en-IN')}</span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           <button
             className="btn btn-primary btn-lg btn-full"
             onClick={handleContinue}
-            disabled={selectedSeatNums.length < passengers}
+            disabled={selectedSeatNums.length < passengers || someLoading}
           >
             Continue to Booking →
           </button>

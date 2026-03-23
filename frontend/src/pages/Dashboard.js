@@ -8,21 +8,34 @@ import './Dashboard.css';
 
 const fmtDate = (d) => format(new Date(d), 'dd MMM yyyy');
 const fmtTime = (d) => format(new Date(d), 'HH:mm');
-const fmtDur = (m) => `${Math.floor(m / 60)}h ${m % 60}m`;
+const fmtDur  = (m) => `${Math.floor(m / 60)}h ${m % 60}m`;
 
 const statusColors = {
   CONFIRMED: 'badge-green',
   CANCELLED: 'badge-red',
-  PENDING: 'badge-amber',
+  PENDING:   'badge-amber',
 };
+
+// ── BookingCard ───────────────────────────────────────────────────────────────
 
 const BookingCard = ({ booking, onCancel }) => {
   const f = booking.flightId;
   const [cancelling, setCancelling] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded]     = useState(false);
 
-  const handleCancel = async () => {
-    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+  if (!f) return null;
+
+  const pb          = booking.priceBreakdown || {};
+  const seatCount   = booking.seats?.length || 1;
+  const basePerSeat = Math.round((pb.basePrice || 0) / seatCount);
+
+  const seatFare = (seat) => basePerSeat + (seat.seatCharge || 0);
+
+  const passengerFor = (seatNumber) =>
+    booking.passengers?.find(p => p.seatNumber === seatNumber);
+
+  const handleCancelWhole = async () => {
+    if (!window.confirm('Cancel the entire booking? All seats will be released.')) return;
     try {
       setCancelling(true);
       await onCancel(booking._id);
@@ -31,10 +44,11 @@ const BookingCard = ({ booking, onCancel }) => {
     }
   };
 
-  if (!f) return null;
+  const isConfirmed = booking.bookingStatus === 'CONFIRMED';
 
   return (
     <div className={`booking-card ${booking.bookingStatus === 'CANCELLED' ? 'cancelled' : ''}`}>
+      {/* ── Top ── */}
       <div className="bc-top">
         <div className="bc-ref-row">
           <div className="bc-ref">
@@ -64,7 +78,7 @@ const BookingCard = ({ booking, onCancel }) => {
             </div>
           </div>
           <div className="bc-price-block">
-            <div className="bc-price">₹{booking.priceBreakdown?.totalPrice?.toLocaleString('en-IN')}</div>
+            <div className="bc-price">₹{pb.totalPrice?.toLocaleString('en-IN')}</div>
             <div className="bc-price-label">Total Paid</div>
           </div>
         </div>
@@ -72,49 +86,59 @@ const BookingCard = ({ booking, onCancel }) => {
         <div className="bc-meta-row">
           <span className="bc-meta-item">📅 {fmtDate(f.departureTime)}</span>
           <span className="bc-meta-item">💺 {booking.seats?.map(s => s.seatNumber).join(', ')}</span>
-          <span className="bc-meta-item">👥 {booking.passengers?.length} passenger{booking.passengers?.length > 1 ? 's' : ''}</span>
+          <span className="bc-meta-item">👥 {seatCount} passenger{seatCount > 1 ? 's' : ''}</span>
           <span className="bc-meta-item">✈ {f.flightNumber}</span>
         </div>
       </div>
 
+      {/* ── Actions ── */}
       <div className="bc-actions">
         <button className="btn btn-ghost btn-sm" onClick={() => setExpanded(!expanded)}>
           {expanded ? '▲ Hide Details' : '▼ View Details'}
         </button>
-        {booking.bookingStatus === 'CONFIRMED' && (
-          <button className="btn btn-danger btn-sm" onClick={handleCancel} disabled={cancelling}>
-            {cancelling ? <><div className="spinner" /> Cancelling...</> : 'Cancel Booking'}
+        {isConfirmed && (
+          <button className="btn btn-danger btn-sm" onClick={handleCancelWhole} disabled={cancelling}>
+            {cancelling ? <><div className="spinner" /> Cancelling…</> : 'Cancel Booking'}
           </button>
         )}
       </div>
 
+      {/* ── Expanded ── */}
       {expanded && (
         <div className="bc-expanded">
-          <div className="bc-exp-section">
-            <div className="bc-exp-title">Passengers</div>
-            <div className="bc-passengers">
-              {booking.passengers?.map((p, i) => (
-                <div key={i} className="bc-passenger">
-                  <span className="bc-pax-num">{i + 1}</span>
-                  <span className="bc-pax-name">{p.name}</span>
-                  <span className="bc-pax-age">Age {p.age}</span>
-                  <span className="bc-pax-gender">{p.gender}</span>
-                  <span className="badge badge-blue">{p.seatNumber}</span>
+          <div className="bc-exp-title">Passengers &amp; Seats</div>
+
+          <div className="bc-seat-list">
+            {booking.seats?.map((seat) => {
+              const pax  = passengerFor(seat.seatNumber);
+              const fare = seatFare(seat);
+
+              return (
+                <div key={seat.seatNumber} className="bc-seat-row-item">
+                  <div className="bc-seat-left">
+                    <span className="badge badge-blue bc-seat-badge">{seat.seatNumber}</span>
+                    <div className="bc-seat-pax-info">
+                      {pax ? (
+                        <>
+                          <span className="bc-pax-name">{pax.name}</span>
+                          <span className="bc-pax-meta">Age {pax.age} · {pax.gender}</span>
+                        </>
+                      ) : (
+                        <span className="bc-pax-meta">No passenger info</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="bc-seat-right">
+                    <span className="bc-seat-fare">₹{fare.toLocaleString('en-IN')}</span>
+                  </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
 
-          <div className="bc-exp-section">
-            <div className="bc-exp-title">Price Breakdown</div>
-            <div className="bc-price-table">
-              <div className="bc-pr"><span>Base Fare</span><span>₹{booking.priceBreakdown?.basePrice?.toLocaleString('en-IN')}</span></div>
-              {booking.priceBreakdown?.demandSurcharge > 0 && <div className="bc-pr surcharge"><span>Demand Surcharge</span><span>+₹{booking.priceBreakdown.demandSurcharge?.toLocaleString('en-IN')}</span></div>}
-              {booking.priceBreakdown?.lastMinuteSurcharge > 0 && <div className="bc-pr surcharge"><span>Last-Minute Surcharge</span><span>+₹{booking.priceBreakdown.lastMinuteSurcharge?.toLocaleString('en-IN')}</span></div>}
-              {booking.priceBreakdown?.seatCharges > 0 && <div className="bc-pr"><span>Seat Charges</span><span>₹{booking.priceBreakdown.seatCharges?.toLocaleString('en-IN')}</span></div>}
-              <div className="bc-pr"><span>Taxes & GST</span><span>₹{booking.priceBreakdown?.taxes?.toLocaleString('en-IN')}</span></div>
-              <div className="bc-pr total"><span>Total</span><span>₹{booking.priceBreakdown?.totalPrice?.toLocaleString('en-IN')}</span></div>
-            </div>
+          <div className="bc-total-row">
+            <span>Total Paid</span>
+            <span>₹{pb.totalPrice?.toLocaleString('en-IN')}</span>
           </div>
 
           {booking.bookingStatus === 'CANCELLED' && (
@@ -129,16 +153,16 @@ const BookingCard = ({ booking, onCancel }) => {
   );
 };
 
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user }  = useAuth();
   const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('ALL');
+  const [loading, setLoading]   = useState(true);
+  const [filter, setFilter]     = useState('ALL');
 
-  useEffect(() => {
-    fetchBookings();
-  }, []);
+  useEffect(() => { fetchBookings(); }, []);
 
   const fetchBookings = async () => {
     try {
@@ -165,10 +189,12 @@ const Dashboard = () => {
   const filtered = bookings.filter(b => filter === 'ALL' || b.bookingStatus === filter);
 
   const stats = {
-    total: bookings.length,
+    total:     bookings.length,
     confirmed: bookings.filter(b => b.bookingStatus === 'CONFIRMED').length,
     cancelled: bookings.filter(b => b.bookingStatus === 'CANCELLED').length,
-    spent: bookings.filter(b => b.bookingStatus === 'CONFIRMED').reduce((s, b) => s + (b.priceBreakdown?.totalPrice || 0), 0),
+    spent:     bookings
+                 .filter(b => b.bookingStatus === 'CONFIRMED')
+                 .reduce((s, b) => s + (b.priceBreakdown?.totalPrice || 0), 0),
   };
 
   return (
@@ -186,12 +212,11 @@ const Dashboard = () => {
       </div>
 
       <div className="section dashboard-content">
-        {/* Stats */}
         <div className="dash-stats">
           {[
-            ['Total Trips', stats.total, '✈'],
-            ['Confirmed', stats.confirmed, '✅'],
-            ['Cancelled', stats.cancelled, '❌'],
+            ['Total Trips',  stats.total,                              '✈'],
+            ['Confirmed',    stats.confirmed,                           '✅'],
+            ['Cancelled',    stats.cancelled,                           '❌'],
             ['Total Spent', `₹${stats.spent.toLocaleString('en-IN')}`, '💰'],
           ].map(([label, val, icon]) => (
             <div key={label} className="dash-stat-card">
@@ -202,17 +227,20 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Filter tabs */}
         <div className="dash-filters">
           {['ALL', 'CONFIRMED', 'CANCELLED'].map(f => (
-            <button key={f} className={`filter-tab${filter === f ? ' active' : ''}`} onClick={() => setFilter(f)}>
+            <button
+              key={f}
+              className={`filter-tab${filter === f ? ' active' : ''}`}
+              onClick={() => setFilter(f)}
+            >
               {f === 'ALL' ? 'All Trips' : f === 'CONFIRMED' ? 'Upcoming' : 'Cancelled'}
             </button>
           ))}
         </div>
 
         {loading ? (
-          <div className="dash-loading"><div className="spinner spinner-lg" /><p>Loading your trips...</p></div>
+          <div className="dash-loading"><div className="spinner spinner-lg" /><p>Loading your trips…</p></div>
         ) : filtered.length === 0 ? (
           <div className="dash-empty">
             <div className="dash-empty-icon">✈️</div>
@@ -223,7 +251,11 @@ const Dashboard = () => {
         ) : (
           <div className="booking-list">
             {filtered.map(b => (
-              <BookingCard key={b._id} booking={b} onCancel={handleCancel} />
+              <BookingCard
+                key={b._id}
+                booking={b}
+                onCancel={handleCancel}
+              />
             ))}
           </div>
         )}

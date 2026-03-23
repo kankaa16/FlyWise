@@ -1,7 +1,11 @@
 const Booking = require('../models/Booking');
 const Flight = require('../models/Flight');
 const Seat = require('../models/Seat');
-const { calculatePrice } = require('../middleware/pricing');
+const { calculatePrice } = require('../middleware/pricingService');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOOKING CRUD
+// ─────────────────────────────────────────────────────────────────────────────
 
 // @desc    Create booking
 // @route   POST /api/bookings
@@ -10,7 +14,10 @@ const createBooking = async (req, res) => {
   const userId = req.user._id;
 
   if (!flightId || !seatNumbers?.length || !passengers?.length) {
-    return res.status(400).json({ success: false, message: 'Flight, seats, and passenger details are required.' });
+    return res.status(400).json({
+      success: false,
+      message: 'Flight, seats, and passenger details are required.',
+    });
   }
 
   const flight = await Flight.findById(flightId);
@@ -31,35 +38,32 @@ const createBooking = async (req, res) => {
     });
   }
 
-  // Calculate final price
-  const pricing = calculatePrice(flight, seats, passengers.length);
-
-  // Build seat details
-  const seatDetails = seats.map(seat => ({
-    seatId: seat._id,
-    seatNumber: seat.seatNumber,
-    seatType: seat.seatType,
-    seatCharge: seat.seatType === 'WINDOW' ? 300 : seat.seatType === 'AISLE' ? 150 : 0,
-  }));
+  // Calculate final price — pass full seat documents so per-seat rules apply
+  const priceBreakdown = await calculatePrice(flight, seats, passengers.length);
 
   // Map passengers to seats
   const passengersWithSeats = passengers.map((p, i) => ({
     ...p,
-    seatNumber: seatNumbers[i] || seatNumbers[0],
+    seatNumber: seatNumbers[i] ?? seatNumbers[0],
   }));
 
   const booking = await Booking.create({
     userId,
     flightId,
-    seats: seatDetails,
+    seats: seats.map((seat) => ({
+      seatId: seat._id,
+      seatNumber: seat.seatNumber,
+      seatType: seat.seatType,
+      class: seat.class,
+    })),
     passengers: passengersWithSeats,
     priceBreakdown: {
-      basePrice: pricing.basePrice,
-      demandSurcharge: pricing.demandSurcharge,
-      lastMinuteSurcharge: pricing.lastMinuteSurcharge,
-      seatCharges: pricing.seatCharges,
-      taxes: pricing.taxes,
-      totalPrice: pricing.totalPrice,
+      basePrice: priceBreakdown.basePrice,
+      demandSurcharge: priceBreakdown.demandSurcharge,
+      lastMinuteSurcharge: priceBreakdown.lastMinuteSurcharge,
+      seatCharges: priceBreakdown.seatCharges,
+      taxes: priceBreakdown.taxes,
+      totalPrice: priceBreakdown.totalPrice,
     },
     bookingStatus: 'CONFIRMED',
     paymentStatus: 'PAID',
@@ -91,7 +95,10 @@ const createBooking = async (req, res) => {
 // @route   GET /api/bookings/my
 const getMyBookings = async (req, res) => {
   const bookings = await Booking.find({ userId: req.user._id })
-    .populate('flightId', 'flightNumber airline source destination departureTime arrivalTime duration aircraft')
+    .populate(
+      'flightId',
+      'flightNumber airline source destination departureTime arrivalTime duration aircraft'
+    )
     .sort({ createdAt: -1 });
 
   res.json({ success: true, count: bookings.length, bookings });
@@ -104,10 +111,13 @@ const getBookingById = async (req, res) => {
     .populate('flightId')
     .populate('userId', 'name email phone');
 
-  if (!booking) return res.status(404).json({ success: false, message: 'Booking not found.' });
+  if (!booking)
+    return res.status(404).json({ success: false, message: 'Booking not found.' });
 
-  // Only allow owner or admin
-  if (booking.userId._id.toString() !== req.user._id.toString() && req.user.role !== 'ADMIN') {
+  if (
+    booking.userId._id.toString() !== req.user._id.toString() &&
+    req.user.role !== 'ADMIN'
+  ) {
     return res.status(403).json({ success: false, message: 'Not authorized.' });
   }
 
@@ -118,9 +128,13 @@ const getBookingById = async (req, res) => {
 // @route   PUT /api/bookings/:id/cancel
 const cancelBooking = async (req, res) => {
   const booking = await Booking.findById(req.params.id);
-  if (!booking) return res.status(404).json({ success: false, message: 'Booking not found.' });
+  if (!booking)
+    return res.status(404).json({ success: false, message: 'Booking not found.' });
 
-  if (booking.userId.toString() !== req.user._id.toString() && req.user.role !== 'ADMIN') {
+  if (
+    booking.userId.toString() !== req.user._id.toString() &&
+    req.user.role !== 'ADMIN'
+  ) {
     return res.status(403).json({ success: false, message: 'Not authorized.' });
   }
 
@@ -128,15 +142,13 @@ const cancelBooking = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Booking already cancelled.' });
   }
 
-  const seatNumbers = booking.seats.map(s => s.seatNumber);
+  const seatNumbers = booking.seats.map((s) => s.seatNumber);
 
-  // Release seats
   await Seat.updateMany(
     { flightId: booking.flightId, seatNumber: { $in: seatNumbers } },
     { status: 'AVAILABLE', bookedBy: null, lockedBy: null, lockExpiry: null }
   );
 
-  // Restore available seats count
   await Flight.findByIdAndUpdate(booking.flightId, {
     $inc: { availableSeats: seatNumbers.length },
   });
@@ -182,4 +194,12 @@ const getStats = async (req, res) => {
   });
 };
 
-module.exports = { createBooking, getMyBookings, getBookingById, cancelBooking, getAllBookings, getStats };
+module.exports = {
+  // bookings
+  createBooking,
+  getMyBookings,
+  getBookingById,
+  cancelBooking,
+  getAllBookings,
+  getStats
+};

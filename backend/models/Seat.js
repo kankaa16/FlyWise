@@ -52,10 +52,10 @@ const seatSchema = new mongoose.Schema({
     ref: 'User',
     default: null,
   },
-  extraCharge: {
-    type: Number,
-    default: 0,
-  },
+  // extraCharge: {
+  //   type: Number,
+  //   default: 0,
+  // },
 }, { timestamps: true });
 
 // Compound index for efficient queries

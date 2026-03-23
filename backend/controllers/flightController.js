@@ -1,19 +1,25 @@
 const Flight = require('../models/Flight');
 const Seat = require('../models/Seat');
-const { calculatePrice } = require('../middleware/pricing');
+const { calculatePrice } = require('../middleware/pricingService');
 
-// Helper: create seats for a flight
-const createSeatsForFlight = async (flightId, totalSeats = 60) => {
-  const rows = Math.ceil(totalSeats / 6);
-  const columns = ['A', 'B', 'C', 'D', 'E', 'F'];
+// Helper: generate column labels from count (e.g. 6 → ['A','B','C','D','E','F'])
+const getColumnLabels = (count) =>
+  Array.from({ length: count }, (_, i) => String.fromCharCode(65 + i));
+
+// Helper: create seats for a flight based on rows/columns/businessRows
+const createSeatsForFlight = async (flight) => {
+  const { _id: flightId, rows, columns, businessRows } = flight;
+  const colLabels = getColumnLabels(columns);
   const seats = [];
 
   for (let row = 1; row <= rows; row++) {
-    for (let col of columns) {
+    for (let col of colLabels) {
       const seatNumber = `${row}${col}`;
+      const colIndex = colLabels.indexOf(col);
+
       let seatType = 'MIDDLE';
-      if (col === 'A' || col === 'F') seatType = 'WINDOW';
-      else if (col === 'C' || col === 'D') seatType = 'AISLE';
+      if (colIndex === 0 || colIndex === colLabels.length - 1) seatType = 'WINDOW';
+      else if (colIndex === Math.floor(colLabels.length / 2) - 1 || colIndex === Math.floor(colLabels.length / 2)) seatType = 'AISLE';
 
       seats.push({
         flightId,
@@ -21,7 +27,7 @@ const createSeatsForFlight = async (flightId, totalSeats = 60) => {
         row,
         column: col,
         seatType,
-        class: row <= 3 ? 'BUSINESS' : 'ECONOMY',
+        class: row <= businessRows ? 'BUSINESS' : 'ECONOMY',
         status: 'AVAILABLE',
       });
     }
@@ -52,15 +58,14 @@ const searchFlights = async (req, res) => {
     availableSeats: { $gte: parseInt(passengers) },
   }).sort({ departureTime: 1 });
 
-  // Attach pricing to each flight
-  const flightsWithPricing = flights.map(flight => {
-    const pricing = calculatePrice(flight, [], parseInt(passengers));
+  const flightsWithPricing = await Promise.all(flights.map(async (flight) => {
+    const pricing = await calculatePrice(flight, [], parseInt(passengers));
     return {
       ...flight.toObject(),
       dynamicPrice: pricing.totalPrice,
       priceBreakdown: pricing,
     };
-  });
+  }));
 
   res.json({ success: true, count: flights.length, flights: flightsWithPricing });
 };
@@ -72,7 +77,7 @@ const getFlightById = async (req, res) => {
   if (!flight) {
     return res.status(404).json({ success: false, message: 'Flight not found.' });
   }
-  const pricing = calculatePrice(flight, [], 1);
+  const pricing = await calculatePrice(flight, [], 1);
   res.json({ success: true, flight: { ...flight.toObject(), priceBreakdown: pricing } });
 };
 
@@ -91,7 +96,7 @@ const createFlight = async (req, res) => {
     sourceCity, sourceCode,
     destinationCity, destinationCode,
     departureTime, arrivalTime,
-    basePrice, totalSeats, aircraft,
+    basePrice, rows, columns, businessRows, aircraft,
   } = req.body;
 
   const dep = new Date(departureTime);
@@ -108,21 +113,56 @@ const createFlight = async (req, res) => {
     arrivalTime: arr,
     duration,
     basePrice,
-    totalSeats: totalSeats || 60,
-    availableSeats: totalSeats || 60,
+    rows: rows || 10,
+    columns: columns || 6,
+    businessRows: businessRows || 3,
     aircraft,
   });
 
-  await createSeatsForFlight(flight._id, flight.totalSeats);
+  await createSeatsForFlight(flight);
 
-  res.status(201).json({ success: true, message: 'Flight created successfully.', flight });
+  res.status(201).json({
+    success: true,
+    message: `Flight created with ${flight.totalSeats} seats (${flight.rows} rows × ${flight.columns} columns).`,
+    flight,
+  });
 };
 
 // @desc    Update flight (admin)
 // @route   PUT /api/flights/:id
 const updateFlight = async (req, res) => {
-  const flight = await Flight.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  const flight = await Flight.findById(req.params.id);
   if (!flight) return res.status(404).json({ success: false, message: 'Flight not found.' });
+
+  const oldRows = flight.rows;
+  const oldColumns = flight.columns;
+  const oldBusinessRows = flight.businessRows;
+
+  // Apply all updates
+  Object.assign(flight, req.body);
+
+  const seatsChanged =
+    (req.body.rows != null && req.body.rows !== oldRows) ||
+    (req.body.columns != null && req.body.columns !== oldColumns) ||
+    (req.body.businessRows != null && req.body.businessRows !== oldBusinessRows);
+
+  if (seatsChanged) {
+    // Recalculate totalSeats and availableSeats
+    const newTotal = flight.rows * flight.columns;
+    const confirmedSeats = await Seat.countDocuments({
+      flightId: flight._id,
+      status: { $in: ['CONFIRMED', 'LOCKED'] },
+    });
+
+    flight.totalSeats = newTotal;
+    flight.availableSeats = newTotal - confirmedSeats;
+
+    // Rebuild seat map
+    await Seat.deleteMany({ flightId: flight._id });
+    await createSeatsForFlight(flight);
+  }
+
+  await flight.save();
   res.json({ success: true, flight });
 };
 
@@ -136,20 +176,32 @@ const deleteFlight = async (req, res) => {
   res.json({ success: true, message: 'Flight deleted.' });
 };
 
-// @desc    Get price preview
-// @route   POST /api/flights/:id/price
+// @desc  Get dynamic price for selected seats
+// @route POST /api/flights/:id/price
 const getFlightPrice = async (req, res) => {
-  const { seatNumbers = [], passengers = 1 } = req.body;
-  const flight = await Flight.findById(req.params.id);
-  if (!flight) return res.status(404).json({ success: false, message: 'Flight not found.' });
+  try {
+    const flight = await Flight.findById(req.params.id);
+    if (!flight)
+      return res.status(404).json({ success: false, message: 'Flight not found.' });
 
-  let seats = [];
-  if (seatNumbers.length > 0) {
-    seats = await Seat.find({ flightId: flight._id, seatNumber: { $in: seatNumbers } });
+    const { seatNumbers, passengers } = req.body;
+
+    if (!seatNumbers?.length) {
+      return res.status(400).json({ success: false, message: 'seatNumbers required.' });
+    }
+
+    const seats = await Seat.find({
+      flightId: flight._id,
+      seatNumber: { $in: seatNumbers },
+    });
+
+    const pricing = await calculatePrice(flight, seats, passengers);
+
+    res.json({ success: true, pricing });
+  } catch (err) {
+    console.error('getFlightPrice error:', err);
+    res.status(500).json({ success: false, message: 'Price calculation failed.' });
   }
-
-  const pricing = calculatePrice(flight, seats, passengers);
-  res.json({ success: true, pricing });
 };
 
 module.exports = {

@@ -49,6 +49,95 @@
 .price-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--gray-600); }
 .price-row.surcharge { color: var(--red-400); }
 .price-row.total { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--blue-900); }
+/* ── Per-seat breakdown (BookingSummary) ──────────────────────────── */
+/* ── Per-seat breakdown (BookingSummary) ──────────────────────────── */
+
+.seat-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.seat-breakdown-item {
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.sb-seat-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.sb-passenger-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-600);
+  font-family: var(--font-display);
+}
+
+.sb-rows {
+  padding: 6px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sb-row {
+  font-size: 12px;
+  padding: 3px 0;
+}
+
+.sb-subtotal {
+  font-weight: 700;
+  font-family: var(--font-display);
+  border-top: 1px dashed var(--gray-200);
+  margin-top: 4px;
+  padding-top: 6px !important;
+  font-size: 13px !important;
+}
+
+.grand-total-section {
+  margin-top: 4px;
+}
+
+/* ── Price hint & fetching badge (SeatSelection) ─────────────────── */
+
+.price-hint {
+  font-size: 12px;
+  color: var(--gray-400);
+  text-align: center;
+  padding: 8px 0 4px;
+  margin: 0;
+}
+
+.price-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.price-fetching-badge {
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-display);
+  color: var(--blue-600);
+  background: var(--blue-50);
+  border: 1px solid var(--blue-100);
+  border-radius: 99px;
+  padding: 2px 8px;
+  animation: pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from { opacity: 1; }
+  to   { opacity: 0.4; }
+}
 
 /* Confirmation */
 .confirmation-page { min-height: 80vh; display: flex; align-items: center; justify-content: center; }

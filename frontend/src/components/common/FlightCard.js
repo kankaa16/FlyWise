@@ -17,7 +17,7 @@ const AirlineIcon = ({ code }) => {
 };
 
 const FlightCard = ({ flight, onSelect, passengers = 1 }) => {
-  const price = flight.dynamicPrice || flight.basePrice;
+  const price = flight.basePrice;
   const pb = flight.priceBreakdown;
   const hasSurcharge = pb && (pb.demandSurcharge > 0 || pb.lastMinuteSurcharge > 0);
 
