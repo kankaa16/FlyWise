@@ -11,10 +11,19 @@ const Flights = () => {
   const [urlParams] = useSearchParams();
   const { setSelectedFlight, setSearchParams } = useBooking();
 
+
+
   const source = urlParams.get('source') || '';
   const destination = urlParams.get('destination') || '';
   const date = urlParams.get('date') || '';
   const passengers = parseInt(urlParams.get('passengers') || '1');
+
+  const [editData, setEditData] = useState({
+  date: date || '',
+  passengers: passengers || 1
+});
+
+
 
   const [flights, setFlights] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,10 +32,16 @@ const Flights = () => {
   useEffect(() => {
     setSearchParams({ source, destination, date, passengers });
     fetchFlights();
-  }, [source, destination, date]);
+  }, [source, destination, date,passengers]);
+
+  useEffect(() => {
+  setEditData({
+    date: date || '',
+    passengers: passengers || 1
+  });
+}, [date, passengers]);
 
   const [noFlightsOnDate, setNoFlightsOnDate] = useState(false);
-
 const fetchFlights = async () => {
   try {
     setLoading(true);
@@ -53,7 +68,7 @@ const fetchFlights = async () => {
 
   const handleSelectFlight = (flight) => {
     setSelectedFlight(flight);
-    navigate('/seats');
+    navigate(`/seats?passengers=${passengers}&date=${date || ''}`);
   };
 
   const sorted = [...flights].sort((a, b) => {
@@ -63,9 +78,57 @@ const fetchFlights = async () => {
     return 0;
   });
 
+  const handleUpdate = () => {
+  let url = `/flights?source=${encodeURIComponent(source)}&destination=${encodeURIComponent(destination)}&passengers=${editData.passengers}`;
+
+  if (editData.date) {
+    url += `&date=${editData.date}`;
+  }
+
+  navigate(url); //this triggers re-fetch
+};
+
   return (
     <div className="page-content flights-page">
       {/* Header */}
+      <div className="top-search-bar flights-top-bar">
+
+  <div className="route-pill">
+    ✈ {source} → {destination}
+  </div>
+
+  <div className="field-pill">
+    <img src=''></img>
+    <input
+      type="date"
+      value={editData.date}
+      onChange={(e) =>
+        setEditData({ ...editData, date: e.target.value })
+      }
+    />
+  </div>
+
+  <div className="field-pill">
+    👤
+    <select
+      value={editData.passengers}
+      onChange={(e) =>
+        setEditData({ ...editData, passengers: Number(e.target.value) })
+      }
+    >
+      {[1,2,3,4,5,6].map(n => (
+        <option key={n} value={n}>
+          {n} {n === 1 ? 'Adult' : 'Adults'}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <button className="update-btn" onClick={handleUpdate}>
+    Update
+  </button>
+
+</div>
       <div className="flights-header">
         <div className="section">
           <div className="flights-breadcrumb">

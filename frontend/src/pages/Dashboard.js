@@ -379,7 +379,7 @@ const Dashboard = () => {
         <div className="dash-stats">
           {[
             ['Total Trips', stats.total, '/plane.png'],
-            ['Confirmed', stats.confirmed, '/check.png'],
+            ['Confirmed', stats.confirmed, '/yes.png'],
             ['Cancelled', stats.cancelled, '/cancel.png'],
             ['Total Spent', `₹${stats.spent.toLocaleString('en-IN')}`, 'flying-money.png'],
           ].map(([label, val, icon]) => (

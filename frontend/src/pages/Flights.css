@@ -58,3 +58,113 @@
 .no-flights h3 { font-family: var(--font-display); font-size: 20px; color: var(--gray-600); }
 
 .flight-list { display: flex; flex-direction: column; gap: 14px; }
+
+
+/* ===== Top Bar Container ===== */
+.flights-top-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  margin-bottom: 18px;
+
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  border-radius: 18px;
+
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* ===== Route pill ===== */
+.route-pill {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1e293b;
+
+  background: #eef2ff;
+  padding: 8px 14px;
+  border-radius: 999px;
+
+  letter-spacing: 0.3px;
+}
+
+/* ===== Field wrapper ===== */
+.field-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  background: #f8fafc;
+  padding: 6px 10px;
+  border-radius: 999px;
+
+  transition: all 0.2s ease;
+}
+
+/* hover effect */
+.field-pill:hover {
+  background: #f1f5f9;
+}
+
+/* ===== Inputs ===== */
+.field-pill input,
+.field-pill select {
+  border: none;
+  outline: none;
+  background: transparent;
+
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+
+  cursor: pointer;
+}
+
+/* remove ugly date icon spacing */
+.field-pill input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+/* ===== Update Button ===== */
+.update-btn {
+  margin-left: auto;
+
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+
+  border: none;
+  border-radius: 999px;
+  padding: 8px 18px;
+
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+
+  cursor: pointer;
+
+  transition: all 0.25s ease;
+}
+
+/* hover */
+.update-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+}
+
+/* click */
+.update-btn:active {
+  transform: scale(0.96);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .flights-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .update-btn {
+    width: 100%;
+  }
+}

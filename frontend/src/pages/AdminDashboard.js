@@ -137,7 +137,7 @@ const AdminDashboard = () => {
             <div className="admin-stats-grid">
               {[
   ['Total Bookings', stats.totalBookings, '/ticket-flight.png', 'blue'],
-  ['Confirmed', stats.confirmedBookings, '/check.png', 'green'],
+  ['Confirmed', stats.confirmedBookings, '/yes.png', 'green'],
   ['Cancelled', stats.cancelledBookings, '/cancel.png', 'red'],
   ['Total Revenue', `₹${stats.totalRevenue?.toLocaleString('en-IN')}`, '/money.png', 'amber'],
   ['Active Flights', stats.totalFlights, '/plane.png', 'blue'], 
