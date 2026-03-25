@@ -142,7 +142,7 @@ localStorage.setItem('searchParams', JSON.stringify(form));
                   <button
   className="deal-btn"
   onClick={() => {
-    const url = `/flights?source=${encodeURIComponent(deal.from)}&destination=${encodeURIComponent(deal.to)}&passengers=${passengers}`;
+    const url = `/flights?source=${encodeURIComponent(deal.from)}&destination=${encodeURIComponent(deal.to)}&passengers=${form.passengers}`;
     navigate(url);
   }}
 >
