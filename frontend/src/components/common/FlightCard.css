@@ -194,3 +194,21 @@
   display: inline-block;
   margin-bottom: 8px;
 }
+
+.flight-card--selected {
+  border-color: #185FA5;
+  box-shadow: 0 0 0 2px rgba(24, 95, 165, 0.18);
+  background: #f5f9ff;
+}
+
+.btn-success {
+  background: #1D9E75;
+  color: white;
+  border: none;
+}
+.btn-success:hover { background: #178563; }
+
+.badge-teal {
+  background: #e0f7f1;
+  color: #0f8b6a;
+}

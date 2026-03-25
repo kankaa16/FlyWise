@@ -36,7 +36,7 @@ const Home = () => {
   const { setSearchParams } = useBooking();
   const today = format(new Date(), 'yyyy-MM-dd');
 
-  const [form, setForm] = useState({ source: '', destination: '', date: '', passengers: 1 });
+  const [form, setForm] = useState({ source: '', destination: '', date: '', returnDate: '', passengers: 1 });
   const [tripType, setTripType] = useState('one');
   const [promoIdx, setPromoIdx] = useState(0);
   const carouselRef = useRef(null);
@@ -44,12 +44,13 @@ const Home = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     if (!form.source || !form.destination) return;
+    if (tripType === 'round' && !form.returnDate) return;
     setSearchParams(form);
-    let url = `/flights?source=${encodeURIComponent(form.source)}&destination=${encodeURIComponent(form.destination)}&passengers=${form.passengers}`;
-    
-    if (form.date) {
-      url += `&date=${form.date}`;
-    }
+    const src = encodeURIComponent(form.source.trim());
+    const dst = encodeURIComponent(form.destination.trim());
+    let url = `/flights?source=${src}&destination=${dst}&passengers=${form.passengers}&tripType=${tripType}`;
+    if (form.date) url += `&date=${form.date}`;
+    if (tripType === 'round' && form.returnDate) url += `&returnDate=${form.returnDate}`;
     navigate(url);
   };
 
@@ -86,20 +87,60 @@ const Home = () => {
               </button>
             ))}
           </div>
-          <form onSubmit={handleSearch} className="search-form">
+          <form onSubmit={handleSearch} className={`search-form${tripType === 'round' ? ' search-form-round' : ''}`}>
             <div className="form-group">
               <label className="form-label">From</label>
-              <input className="form-input" placeholder="City or Airport" value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))} required />
+              <input
+                className="form-input"
+                placeholder="City or Airport"
+                value={form.source}
+                onChange={e => setForm(f => ({ ...f, source: e.target.value }))}
+                required
+              />
             </div>
             <button type="button" className="swap-btn" onClick={swap} title="Swap">⇄</button>
             <div className="form-group">
               <label className="form-label">To</label>
-              <input className="form-input" placeholder="City or Airport" value={form.destination} onChange={e => setForm(f => ({ ...f, destination: e.target.value }))} required />
+              <input
+                className="form-input"
+                placeholder="City or Airport"
+                value={form.destination}
+                onChange={e => setForm(f => ({ ...f, destination: e.target.value }))}
+                required
+              />
             </div>
             <div className="form-group">
-              <label className="form-label">Date</label>
-              <input className="form-input" type="date" min={today} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}  />
+              <label className="form-label">Departure</label>
+              <input
+                className="form-input"
+                type="date"
+                min={today}
+                value={form.date}
+                onChange={e => {
+                  const newDate = e.target.value;
+                  setForm(f => ({
+                    ...f,
+                    date: newDate,
+                    // if return date is now before departure, reset it
+                    returnDate: f.returnDate && f.returnDate < newDate ? newDate : f.returnDate,
+                  }));
+                }}
+                required
+              />
             </div>
+            {tripType === 'round' && (
+              <div className="form-group">
+                <label className="form-label">Return</label>
+                <input
+                  className="form-input"
+                  type="date"
+                  min={form.date || today}
+                  value={form.returnDate}
+                  onChange={e => setForm(f => ({ ...f, returnDate: e.target.value }))}
+                  required
+                />
+              </div>
+            )}
             <div className="form-group">
               <label className="form-label">Passengers</label>
               <select className="form-input" value={form.passengers} onChange={e => setForm(f => ({ ...f, passengers: parseInt(e.target.value) }))}>

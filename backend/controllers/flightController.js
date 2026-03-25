@@ -30,65 +30,94 @@ const createSeatsForFlight = async (flightId, totalSeats = 60) => {
   await Seat.insertMany(seats);
 };
 
-// @desc    Search flights
+// @desc    Search flights (one-way and round-trip)
 // @route   GET /api/flights/search
 const searchFlights = async (req, res) => {
   const now = new Date();
-  const { source, destination, date, passengers = 1 } = req.query;
+  const { source, destination, date, passengers = 1, returnDate } = req.query;
 
   if (!source || !destination) {
-    return res.status(400).json({
-      success: false,
-      message: 'Source and destination are required.',
+    return res.status(400).json({ success: false, message: 'Source and destination are required.' });
+  }
+
+  const pax = parseInt(passengers);
+  const minTime = new Date(now.getTime() + 10 * 60 * 60 * 1000);
+
+  // Returns a Mongo date-range filter for a YYYY-MM-DD string.
+  // Returns null when the 10-hour rule wipes out the entire day.
+  const buildDateFilter = (dateStr) => {
+    if (!dateStr) return { $gte: minTime };
+    const startOfDay = new Date(dateStr + 'T00:00:00.000Z');
+    const endOfDay   = new Date(dateStr + 'T23:59:59.999Z');
+    const effectiveLower = new Date(Math.max(startOfDay.getTime(), minTime.getTime()));
+    if (effectiveLower > endOfDay) return null;
+    return { $gte: effectiveLower, $lte: endOfDay };
+  };
+
+  // Mongo query for one leg — matches source/destination by city OR airport code.
+  const buildQuery = (src, dst, dateFilter) => ({
+    $and: [
+      { $or: [{ 'source.city': { $regex: src, $options: 'i' } }, { 'source.code': { $regex: src, $options: 'i' } }] },
+      { $or: [{ 'destination.city': { $regex: dst, $options: 'i' } }, { 'destination.code': { $regex: dst, $options: 'i' } }] },
+    ],
+    isActive: true,
+    status: 'SCHEDULED',
+    availableSeats: { $gte: pax },
+    departureTime: dateFilter,
+  });
+
+  const withPricing = (list) =>
+    list.map(f => {
+      const pricing = calculatePrice(f, [], pax);
+      return { ...f.toObject(), dynamicPrice: pricing.totalPrice, priceBreakdown: pricing };
+    });
+
+  // ── Round Trip ───────────────────────────────────────────────────────────
+  if (returnDate) {
+    const outFilter = buildDateFilter(date);
+    const retFilter = buildDateFilter(returnDate);
+
+    if (!outFilter) {
+      return res.json({
+        success: true,
+        outboundFlights: [],
+        returnFlights: [],
+        message: 'Outbound flights on this date fall within the 10-hour advance booking window.',
+      });
+    }
+
+    const [rawOut, rawRet] = await Promise.all([
+      Flight.find(buildQuery(source, destination, outFilter)).sort({ departureTime: 1 }),
+      retFilter
+        ? Flight.find(buildQuery(destination, source, retFilter)).sort({ departureTime: 1 })
+        : Promise.resolve([]),
+    ]);
+
+    const response = {
+      success: true,
+      outboundFlights: withPricing(rawOut),
+      returnFlights: retFilter ? withPricing(rawRet) : [],
+    };
+    if (!retFilter) {
+      response.message = 'Return flights on this date fall within the 10-hour advance booking window.';
+    }
+    return res.json(response);
+  }
+
+  // ── One-way ──────────────────────────────────────────────────────────────
+  const filter = buildDateFilter(date);
+
+  if (!filter) {
+    return res.json({
+      success: true,
+      count: 0,
+      flights: [],
+      message: 'All flights on this date fall within the 10-hour advance booking window. Please choose a later date.',
     });
   }
 
-  // ⛔ 10-hour rule
-  const minTime = new Date(now.getTime() + 10 * 60 * 60 * 1000);
-
-  let departureFilter;
-
-  if (date) {
-    const searchDate = new Date(date);
-    const nextDay = new Date(searchDate);
-    nextDay.setDate(nextDay.getDate() + 1);
-
-    departureFilter = {
-      $gte: new Date(Math.max(searchDate, minTime)), // 🔥 important
-      $lt: nextDay,
-    };
-  } else {
-    // no date → future flights only
-    departureFilter = {
-      $gte: minTime,
-    };
-  }
-
-  const query = {
-    'source.city': { $regex: source, $options: 'i' },
-    'destination.city': { $regex: destination, $options: 'i' },
-    isActive: true,
-    status: 'SCHEDULED',
-    availableSeats: { $gte: parseInt(passengers) },
-    departureTime: departureFilter, // ✅ applied once
-  };
-
-  const flights = await Flight.find(query).sort({ departureTime: 1 });
-
-  const flightsWithPricing = flights.map(flight => {
-    const pricing = calculatePrice(flight, [], parseInt(passengers));
-    return {
-      ...flight.toObject(),
-      dynamicPrice: pricing.totalPrice,
-      priceBreakdown: pricing,
-    };
-  });
-
-  res.json({
-    success: true,
-    count: flights.length,
-    flights: flightsWithPricing,
-  });
+  const flights = await Flight.find(buildQuery(source, destination, filter)).sort({ departureTime: 1 });
+  res.json({ success: true, count: flights.length, flights: withPricing(flights) });
 };
 
 // @desc    Get single flight

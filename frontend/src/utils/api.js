@@ -31,7 +31,12 @@ export const getMe = () => API.get('/auth/me');
 export const updateProfile = (data) => API.put('/auth/profile', data);
 
 // Flights
-export const searchFlights = (params) => API.get('/flights/search', { params });
+export const searchFlights = ({ source, destination, date, passengers, returnDate } = {}) => {
+  const toDateStr = (d) => (d instanceof Date ? d.toISOString().split('T')[0] : d);
+  const params = { source, destination, passengers, date: toDateStr(date) };
+  if (returnDate) params.returnDate = toDateStr(returnDate);
+  return API.get('/flights/search', { params });
+};
 export const getFlightById = (id) => API.get(`/flights/${id}`);
 export const getAllFlights = () => API.get('/flights');
 export const createFlight = (data) => API.post('/flights', data);

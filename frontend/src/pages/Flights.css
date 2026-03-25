@@ -58,3 +58,128 @@
 .no-flights h3 { font-family: var(--font-display); font-size: 20px; color: var(--gray-600); }
 
 .flight-list { display: flex; flex-direction: column; gap: 14px; }
+
+.no-date-warning {
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  color: #7c5c00;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+/* ── Round-trip sections ─────────────────────────────────── */
+
+.rt-section { margin-bottom: 36px; }
+
+.rt-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--gray-100);
+}
+
+.rt-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--blue-900);
+}
+
+.rt-leg-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.rt-leg-badge--out { background: #e6f0fb; color: #185FA5; }
+.rt-leg-badge--ret { background: #e6f7f1; color: #0f6e56; }
+
+.rt-route { color: var(--blue-800); }
+
+.rt-date {
+  font-size: 12px;
+  color: var(--gray-400);
+  font-weight: 400;
+  font-family: var(--font-body);
+}
+
+.no-flights-inline {
+  background: #f9f9f9;
+  border: 1px dashed var(--gray-200);
+  border-radius: 10px;
+  padding: 24px;
+  text-align: center;
+  color: var(--gray-400);
+  font-size: 14px;
+}
+
+/* ── Combined price bar ─────────────────────────────────── */
+
+.rt-combined-bar {
+  position: sticky;
+  bottom: 16px;
+  background: white;
+  border: 1.5px solid #b3d1f0;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(24, 95, 165, 0.14);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  z-index: 50;
+  margin-top: 8px;
+}
+
+.rt-combined-legs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.rt-leg-chip {
+  background: #f5f5f5;
+  border: 1.5px dashed var(--gray-200);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--gray-400);
+  font-family: var(--font-display);
+}
+
+.rt-leg-chip--done {
+  background: #eef5ff;
+  border: 1.5px solid #7db8f0;
+  color: var(--blue-800);
+}
+
+.rt-plus { font-size: 18px; color: var(--gray-300); font-weight: 300; }
+
+.rt-total { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+
+.rt-total-label { font-size: 11px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.05em; }
+
+.rt-total-price {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--blue-800);
+}
+
+.rt-continue-btn { white-space: nowrap; flex-shrink: 0; }
+.rt-continue-btn:disabled { opacity: 0.5; cursor: not-allowed; }

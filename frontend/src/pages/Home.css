@@ -83,6 +83,11 @@
   align-items: end;
 }
 
+/* Round-trip: one extra date column between Departure and Passengers */
+.search-form-round {
+  grid-template-columns: 1fr 40px 1fr 1fr 1fr 1fr auto;
+}
+
 .swap-btn {
   width: 38px;
   height: 42px;

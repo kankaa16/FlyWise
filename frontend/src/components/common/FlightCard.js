@@ -16,13 +16,13 @@ const AirlineIcon = ({ code }) => {
   );
 };
 
-const FlightCard = ({ flight, onSelect, passengers = 1 }) => {
+const FlightCard = ({ flight, onSelect, passengers = 1, isSelected = false, isBestValue = false }) => {
   const price = flight.dynamicPrice || flight.basePrice;
   const pb = flight.priceBreakdown;
   const hasSurcharge = pb && (pb.demandSurcharge > 0 || pb.lastMinuteSurcharge > 0);
 
   return (
-    <div className="flight-card">
+    <div className={`flight-card${isSelected ? ' flight-card--selected' : ''}`}>
       <div className="fc-airline">
         <AirlineIcon code={flight.airlineCode} />
         <div>
@@ -67,10 +67,11 @@ const FlightCard = ({ flight, onSelect, passengers = 1 }) => {
         <div className="fc-price-block">
           <div className="fc-price">₹{price?.toLocaleString('en-IN')}</div>
           <div className="fc-price-note">per person · incl. taxes</div>
-          {hasSurcharge && (
+          {(hasSurcharge || isBestValue) && (
             <div className="fc-surcharge-tags">
-              {pb.demandSurcharge > 0 && <span className="badge badge-amber">High Demand</span>}
-              {pb.lastMinuteSurcharge > 0 && <span className="badge badge-red">Last Minute</span>}
+              {isBestValue && <span className="badge badge-teal">Best Value</span>}
+              {pb && pb.demandSurcharge > 0 && <span className="badge badge-amber">High Demand</span>}
+              {pb && pb.lastMinuteSurcharge > 0 && <span className="badge badge-red">Last Minute</span>}
             </div>
           )}
         </div>
@@ -81,8 +82,11 @@ const FlightCard = ({ flight, onSelect, passengers = 1 }) => {
           </span>
         </div>
 
-        <button className="btn btn-primary fc-select-btn" onClick={() => onSelect(flight)}>
-          Select Flight →
+        <button
+          className={`btn ${isSelected ? 'btn-success' : 'btn-primary'} fc-select-btn`}
+          onClick={() => onSelect(flight)}
+        >
+          {isSelected ? '✓ Selected' : 'Select Flight →'}
         </button>
       </div>
     </div>
