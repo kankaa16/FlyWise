@@ -50,7 +50,7 @@ const SeatMap = ({ flightId, maxSeats = 1, onSeatsSelected, userId }) => {
     if (!seat) return 'seat-empty';
     if (seat.status === 'CONFIRMED') return 'seat-confirmed';
 
-    // show locked visually but still clickable
+    //show locked visually but still clickable
     if (seat.status === 'LOCKED' && seat.lockedBy !== userId)
       return 'seat-locked';
 

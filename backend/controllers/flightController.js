@@ -2,7 +2,7 @@ const Flight = require('../models/Flight');
 const Seat = require('../models/Seat');
 const { calculatePrice } = require('../middleware/pricing');
 
-// Helper: create seats for a flight
+//create seats for a flight
 const getColumnLabels = (count) =>
   Array.from({ length: count }, (_, i) => String.fromCharCode(65 + i));
 
@@ -44,8 +44,8 @@ console.log("seats length:", seats.length);
 }
 };
 
-// @desc    Search flights
-// @route   GET /api/flights/search
+//Search flights
+//GET /api/flights/search
 const searchFlights = async (req, res) => {
   const now = new Date();
   const { source, destination, date, passengers = 1 } = req.query;
@@ -57,7 +57,7 @@ const searchFlights = async (req, res) => {
     });
   }
 
-  // 10-hour rule
+  // 10 hr rule
   const minTime = new Date(now.getTime() + 10 * 60 * 60 * 1000);
 
   let departureFilter;
@@ -106,8 +106,8 @@ const searchFlights = async (req, res) => {
   });
 };
 
-// @desc    Get single flight
-// @route   GET /api/flights/:id
+//Get single flight
+//GET /api/flights/:id
 const getFlightById = async (req, res) => {
   const flight = await Flight.findById(req.params.id);
   if (!flight) {
@@ -117,15 +117,15 @@ const getFlightById = async (req, res) => {
   res.json({ success: true, flight: { ...flight.toObject(), priceBreakdown: pricing } });
 };
 
-// @desc    Get all flights (admin)
-// @route   GET /api/flights
+//Get all flights (admin)
+//GET /api/flights
 const getAllFlights = async (req, res) => {
   const flights = await Flight.find({}).sort({ departureTime: -1 });
   res.json({ success: true, count: flights.length, flights });
 };
 
-// @desc    Create flight (admin)
-// @route   POST /api/flights
+//Create flight (admin)
+//POST /api/flights
 const createFlight = async (req, res) => {
   const {
     flightNumber, airline, airlineCode,
@@ -165,8 +165,8 @@ const createFlight = async (req, res) => {
 };
 
 
-// @desc    Update flight (admin)
-// @route   PUT /api/flights/:id
+//Update flight (admin)
+//PUT /api/flights/:id
 const updateFlight = async (req, res) => {
   const flight = await Flight.findByIdAndUpdate(req.params.id, req.body, { new: true });
   const oldRows = flight.rows;
@@ -182,7 +182,7 @@ const updateFlight = async (req, res) => {
     (req.body.businessRows != null && req.body.businessRows !== oldBusinessRows);
 
   if (seatsChanged) {
-    // Recalculate totalSeats and availableSeats
+    //recalculate totalSeats and availableSeats
     const newTotal = flight.rows * flight.columns;
     const confirmedSeats = await Seat.countDocuments({
       flightId: flight._id,
@@ -192,7 +192,7 @@ const updateFlight = async (req, res) => {
     flight.totalSeats = newTotal;
     flight.availableSeats = newTotal - confirmedSeats;
 
-    // Rebuild seat map
+    //Rebuild seat map
     await Seat.deleteMany({ flightId: flight._id });
     await createSeatsForFlight(flight);
   }
@@ -203,8 +203,8 @@ const updateFlight = async (req, res) => {
   res.json({ success: true, flight });
 };
 
-// @desc    Delete flight (admin)
-// @route   DELETE /api/flights/:id
+//Delete flight (admin)
+//DELETE /api/flights/:id
 const deleteFlight = async (req, res) => {
   const flight = await Flight.findById(req.params.id);
   if (!flight) return res.status(404).json({ success: false, message: 'Flight not found.' });
@@ -213,8 +213,8 @@ const deleteFlight = async (req, res) => {
   res.json({ success: true, message: 'Flight deleted.' });
 };
 
-// @desc    Get price preview
-// @route   POST /api/flights/:id/price
+//Get price preview
+//POST /api/flights/:id/price
 const getFlightPrice = async (req, res) => {
   const { seatNumbers = [], passengers = 1 } = req.body;
   const flight = await Flight.findById(req.params.id);

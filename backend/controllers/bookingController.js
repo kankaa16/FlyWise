@@ -3,8 +3,8 @@ const Flight = require('../models/Flight');
 const Seat = require('../models/Seat');
 const { calculatePrice } = require('../middleware/pricing');
 
-// @desc    Create booking
-// @route   POST /api/bookings
+//Create booking
+//POST /api/bookings
 const createBooking = async (req, res) => {
   const { flightId, seatNumbers, passengers , addOns=[]} = req.body;
   console.log("SCHEMA CHECK:", Booking.schema.obj.addOns);
@@ -17,7 +17,7 @@ const createBooking = async (req, res) => {
   const flight = await Flight.findById(flightId);
   if (!flight) return res.status(404).json({ success: false, message: 'Flight not found.' });
 
-  // Verify all seats are locked by this user
+// Verify all seats are locked by this user
   const seats = await Seat.find({
     flightId,
     seatNumber: { $in: seatNumbers },
@@ -32,17 +32,16 @@ const createBooking = async (req, res) => {
     });
   }
 
-  // Calculate final price
+//for final pricing
   const pricing = await calculatePrice(flight, seats, passengers.length);
 
 let safeAddOns = [];
-
-// DEBUG (add this temporarily)
+//debug, lol
 console.log("ADDONS RECEIVED:", addOns);
 console.log("TYPE:", typeof addOns);
 console.log("IS ARRAY:", Array.isArray(addOns));
 
-// HANDLE EVERYTHING
+
 if (Array.isArray(addOns)) {
   safeAddOns = addOns;
 } else if (typeof addOns === "string") {
@@ -135,8 +134,8 @@ const baggageTotal = cleanedAddOns
   });
 };
 
-// @desc    Get user bookings
-// @route   GET /api/bookings/my
+//Get user bookings
+// GET /api/bookings/my
 const getMyBookings = async (req, res) => {
   const bookings = await Booking.find({ userId: req.user._id })
     .populate('flightId', 'flightNumber airline source destination departureTime arrivalTime duration aircraft')
@@ -146,8 +145,8 @@ const getMyBookings = async (req, res) => {
   res.json({ success: true, count: bookings.length, bookings });
 };
 
-// @desc    Get single booking
-// @route   GET /api/bookings/:id
+//Get single booking
+//GET /api/bookings/:id
 const getBookingById = async (req, res) => {
   const booking = await Booking.findById(req.params.id)
     .populate('flightId')
@@ -163,8 +162,8 @@ const getBookingById = async (req, res) => {
   res.json({ success: true, booking });
 };
 
-// @desc    Cancel booking
-// @route   PUT /api/bookings/:id/cancel
+//Cancel booking
+//PUT /api/bookings/:id/cancel
 const cancelBooking = async (req, res) => {
   const booking = await Booking.findById(req.params.id);
   if (!booking) return res.status(404).json({ success: false, message: 'Booking not found.' });
@@ -199,8 +198,8 @@ const cancelBooking = async (req, res) => {
   res.json({ success: true, message: 'Booking cancelled and seats released.', booking });
 };
 
-// @desc    Get all bookings (admin)
-// @route   GET /api/bookings/all
+//Get all bookings (admin)
+//GET /api/bookings/all
 const getAllBookings = async (req, res) => {
   const bookings = await Booking.find({})
     .populate('flightId', 'flightNumber airline source destination departureTime')
@@ -210,8 +209,8 @@ const getAllBookings = async (req, res) => {
   res.json({ success: true, count: bookings.length, bookings });
 };
 
-// @desc    Admin stats
-// @route   GET /api/bookings/stats
+// Admin stats
+// GET /api/bookings/stats
 const getStats = async (req, res) => {
   const totalBookings = await Booking.countDocuments({});
   const confirmedBookings = await Booking.countDocuments({ bookingStatus: 'CONFIRMED' });

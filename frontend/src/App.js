@@ -6,7 +6,7 @@ import { BookingProvider } from './context/BookingContext';
 import Navbar from './components/layout/Navbar';
 import { ProtectedRoute, AdminRoute } from './components/common/ProtectedRoute';
 
-// Pages
+//pages
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';

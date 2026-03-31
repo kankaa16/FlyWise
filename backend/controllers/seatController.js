@@ -1,9 +1,9 @@
 const Seat = require('../models/Seat');
 const Flight = require('../models/Flight');
 
-const LOCK_DURATION_MINUTES = 5; // seats auto-unlock after 5 min
+const LOCK_DURATION_MINUTES=5; // seats auto-unlock after 5 min
 
-// Helper: release expired locks
+//release expired locks
 const releaseExpiredLocks = async (flightId) => {
   const now = new Date();
   await Seat.updateMany(
@@ -12,8 +12,8 @@ const releaseExpiredLocks = async (flightId) => {
   );
 };
 
-// @desc    Get seats for a flight
-// @route   GET /api/seats/:flightId
+//Get seats for a flight
+//GET /api/seats/:flightId
 const getSeats = async (req, res) => {
   const { flightId } = req.params;
   await releaseExpiredLocks(flightId);
@@ -26,8 +26,8 @@ const getSeats = async (req, res) => {
   res.json({ success: true, seats });
 };
 
-// @desc    Lock seats (user selecting)
-// @route   POST /api/seats/lock
+//Lock seats (user selecting)
+//POST /api/seats/lock
 const lockSeats = async (req, res) => {
   const { flightId, seatNumbers } = req.body;
   const userId = req.user._id;
@@ -38,7 +38,7 @@ const lockSeats = async (req, res) => {
 
   await releaseExpiredLocks(flightId);
 
-  // Check all requested seats are available
+  //check all requested seats are available
   const seats = await Seat.find({
     flightId,
     seatNumber: { $in: seatNumbers },
@@ -58,13 +58,13 @@ const lockSeats = async (req, res) => {
 
   const lockExpiry = new Date(Date.now() + LOCK_DURATION_MINUTES * 60 * 1000);
 
-  // Release any previous locks by this user on this flight
+  //release any previous locks by this user on this flight
   await Seat.updateMany(
     { flightId, lockedBy: userId, status: 'LOCKED' },
     { status: 'AVAILABLE', lockedBy: null, lockedAt: null, lockExpiry: null }
   );
 
-  // Lock the new seats
+  //;ock the new seats
   await Seat.updateMany(
     { flightId, seatNumber: { $in: seatNumbers } },
     {
@@ -85,8 +85,8 @@ const lockSeats = async (req, res) => {
   });
 };
 
-// @desc    Unlock seats (user deselecting)
-// @route   POST /api/seats/unlock
+//Unlock seats (user deselecting)
+//POST /api/seats/unlock
 const unlockSeats = async (req, res) => {
   const { flightId, seatNumbers } = req.body;
   const userId = req.user._id;

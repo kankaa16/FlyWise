@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const AddOn = require("../models/AddOn");
 
-// GET /api/addons
+//get /api/addons
 router.get("/", async (req, res) => {
   try {
     const { type, veg } = req.query;

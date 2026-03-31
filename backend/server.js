@@ -9,16 +9,16 @@ const app = express();
 connectDB();
 app.set('trust proxy', 1);
 
-// Rate limiting
+//rate limiting
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
 app.use(limiter);
 
-// Middleware
+//middleware
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE'], allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Routes
+//routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/flights', require('./routes/flights'));
 app.use('/api/seats', require('./routes/seats'));
@@ -27,13 +27,13 @@ app.use('/api/addons', require('./routes/addons'));
 app.use('/api/promo', require('./routes/promo'));
 app.use('/api/pricing-rules', require('./routes/pricingRules'));
 
-// Health check
+//health check
 app.get('/api/health', (req, res) => res.json({ status: 'OK', message: 'FlyWise API running' }));
 
-// 404 handler
+//404 handler
 app.use((req, res) => res.status(404).json({ success: false, message: 'Route not found' }));
 
-// Error handler
+//err handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({ success: false, message: err.message || 'Server error' });

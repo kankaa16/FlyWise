@@ -1,14 +1,14 @@
 const PricingRule = require('../models/PricingRule');
 
-// @desc    Get all pricing rules
-// @route   GET /api/pricing-rules
+//Get all pricing rules
+//GET /api/pricing-rules
 const getPricingRules = async (req, res) => {
   const rules = await PricingRule.find({}).sort({ createdAt: -1 });
   res.json({ success: true, count: rules.length, rules });
 };
 
-// @desc    Create a pricing rule
-// @route   POST /api/pricing-rules
+//Create a pricing rule
+//POST /api/pricing-rules
 const createPricingRule = async (req, res) => {
   const { name, description, type, condition, charge, isActive } = req.body;
 
@@ -18,7 +18,7 @@ const createPricingRule = async (req, res) => {
       .json({ success: false, message: 'name, type, and charge are required.' });
   }
 
-  // Validate that the required condition field is present for each type
+  //validate that the required condition field is present for each type
   const conditionErrors = {
     DEMAND: !condition?.threshold,
     TIME: !condition?.hoursBeforeDeparture,
@@ -44,8 +44,8 @@ const createPricingRule = async (req, res) => {
   res.status(201).json({ success: true, rule });
 };
 
-// @desc    Update a pricing rule
-// @route   PUT /api/pricing-rules/:id
+//Update a pricing rule
+//PUT /api/pricing-rules/:id
 const updatePricingRule = async (req, res) => {
   const rule = await PricingRule.findById(req.params.id);
   if (!rule)
@@ -63,8 +63,8 @@ const updatePricingRule = async (req, res) => {
   res.json({ success: true, rule });
 };
 
-// @desc    Delete a pricing rule
-// @route   DELETE /api/pricing-rules/:id
+//Delete a pricing rule
+//DELETE /api/pricing-rules/:id
 const deletePricingRule = async (req, res) => {
   const rule = await PricingRule.findByIdAndDelete(req.params.id);
   if (!rule)

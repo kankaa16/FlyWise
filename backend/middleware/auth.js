@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// Protect routes - require authentication
+
 const protect = async (req, res, next) => {
   let token;
 
@@ -25,7 +25,7 @@ const protect = async (req, res, next) => {
   }
 };
 
-// Admin only middleware
+//admin only middleware
 const adminOnly = (req, res, next) => {
   if (req.user && req.user.role === 'ADMIN') {
     return next();
@@ -33,7 +33,6 @@ const adminOnly = (req, res, next) => {
   return res.status(403).json({ success: false, message: 'Admin access required.' });
 };
 
-// Generate JWT token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
 };
