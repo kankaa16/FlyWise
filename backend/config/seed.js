@@ -1,11 +1,10 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+const connectDB = require('./db');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Flight = require('../models/Flight');
 const Seat = require('../models/Seat');
-
-mongoose.connect(MONGO_URI);
 
 const createSeats = async (flightId, totalSeats) => {
   const rows = Math.ceil(totalSeats / 6);
@@ -54,44 +53,72 @@ const seed = async () => {
     phone: '8888888888',
   });
 
-  // Flights data
-  const now = new Date();
-  const flightsData = [
-    { flightNumber: 'FW101', airline: 'FlyWise Air', airlineCode: 'FW', source: { city: 'Mumbai', code: 'BOM' }, destination: { city: 'Delhi', code: 'DEL' }, daysOffset: 1, depHour: 6, duration: 120, basePrice: 4500 },
-    { flightNumber: 'FW102', airline: 'FlyWise Air', airlineCode: 'FW', source: { city: 'Mumbai', code: 'BOM' }, destination: { city: 'Delhi', code: 'DEL' }, daysOffset: 1, depHour: 14, duration: 125, basePrice: 5200 },
-    { flightNumber: 'FW201', airline: 'SkyJet', airlineCode: 'SJ', source: { city: 'Delhi', code: 'DEL' }, destination: { city: 'Bangalore', code: 'BLR' }, daysOffset: 1, depHour: 8, duration: 150, basePrice: 3800 },
-    { flightNumber: 'FW202', airline: 'SkyJet', airlineCode: 'SJ', source: { city: 'Delhi', code: 'DEL' }, destination: { city: 'Bangalore', code: 'BLR' }, daysOffset: 1, depHour: 18, duration: 155, basePrice: 4100 },
-    { flightNumber: 'FW301', airline: 'IndiaWings', airlineCode: 'IW', source: { city: 'Chennai', code: 'MAA' }, destination: { city: 'Hyderabad', code: 'HYD' }, daysOffset: 2, depHour: 10, duration: 80, basePrice: 2800 },
-    { flightNumber: 'FW401', airline: 'AirBharat', airlineCode: 'AB', source: { city: 'Kolkata', code: 'CCU' }, destination: { city: 'Mumbai', code: 'BOM' }, daysOffset: 2, depHour: 7, duration: 160, basePrice: 5500 },
-    { flightNumber: 'FW501', airline: 'FlyWise Air', airlineCode: 'FW', source: { city: 'Goa', code: 'GOI' }, destination: { city: 'Delhi', code: 'DEL' }, daysOffset: 3, depHour: 9, duration: 140, basePrice: 6200 },
-    { flightNumber: 'FW601', airline: 'SkyJet', airlineCode: 'SJ', source: { city: 'Mumbai', code: 'BOM' }, destination: { city: 'Goa', code: 'GOI' }, daysOffset: 1, depHour: 11, duration: 75, basePrice: 2500 },
+  // Base routes — every pair is defined in both directions
+  const baseRoutes = [
+    // BOM ↔ DEL (morning + afternoon each way)
+    { airlineCode: 'FW', airline: 'FlyWise Air', source: { city: 'Mumbai', code: 'BOM' }, destination: { city: 'Delhi',     code: 'DEL' }, depHour:  6, duration: 120, basePrice: 4500 },
+    { airlineCode: 'FW', airline: 'FlyWise Air', source: { city: 'Mumbai', code: 'BOM' }, destination: { city: 'Delhi',     code: 'DEL' }, depHour: 14, duration: 125, basePrice: 5200 },
+    { airlineCode: 'FW', airline: 'FlyWise Air', source: { city: 'Delhi',  code: 'DEL' }, destination: { city: 'Mumbai',    code: 'BOM' }, depHour:  8, duration: 120, basePrice: 4500 },
+    { airlineCode: 'FW', airline: 'FlyWise Air', source: { city: 'Delhi',  code: 'DEL' }, destination: { city: 'Mumbai',    code: 'BOM' }, depHour: 16, duration: 125, basePrice: 5200 },
+
+    // DEL ↔ BLR (morning + evening each way)
+    { airlineCode: 'SJ', airline: 'SkyJet',      source: { city: 'Delhi',     code: 'DEL' }, destination: { city: 'Bangalore', code: 'BLR' }, depHour:  8, duration: 150, basePrice: 3800 },
+    { airlineCode: 'SJ', airline: 'SkyJet',      source: { city: 'Delhi',     code: 'DEL' }, destination: { city: 'Bangalore', code: 'BLR' }, depHour: 18, duration: 155, basePrice: 4100 },
+    { airlineCode: 'SJ', airline: 'SkyJet',      source: { city: 'Bangalore', code: 'BLR' }, destination: { city: 'Delhi',     code: 'DEL' }, depHour: 10, duration: 150, basePrice: 3800 },
+    { airlineCode: 'SJ', airline: 'SkyJet',      source: { city: 'Bangalore', code: 'BLR' }, destination: { city: 'Delhi',     code: 'DEL' }, depHour: 20, duration: 155, basePrice: 4100 },
+
+    // MAA ↔ HYD
+    { airlineCode: 'IW', airline: 'IndiaWings',  source: { city: 'Chennai',   code: 'MAA' }, destination: { city: 'Hyderabad', code: 'HYD' }, depHour: 10, duration:  80, basePrice: 2800 },
+    { airlineCode: 'IW', airline: 'IndiaWings',  source: { city: 'Hyderabad', code: 'HYD' }, destination: { city: 'Chennai',   code: 'MAA' }, depHour: 14, duration:  80, basePrice: 2800 },
+
+    // CCU ↔ BOM
+    { airlineCode: 'AB', airline: 'AirBharat',   source: { city: 'Kolkata', code: 'CCU' }, destination: { city: 'Mumbai',  code: 'BOM' }, depHour:  7, duration: 160, basePrice: 5500 },
+    { airlineCode: 'AB', airline: 'AirBharat',   source: { city: 'Mumbai',  code: 'BOM' }, destination: { city: 'Kolkata', code: 'CCU' }, depHour: 12, duration: 160, basePrice: 5500 },
+
+    // GOI ↔ DEL
+    { airlineCode: 'FW', airline: 'FlyWise Air', source: { city: 'Goa',   code: 'GOI' }, destination: { city: 'Delhi', code: 'DEL' }, depHour:  9, duration: 140, basePrice: 6200 },
+    { airlineCode: 'FW', airline: 'FlyWise Air', source: { city: 'Delhi', code: 'DEL' }, destination: { city: 'Goa',   code: 'GOI' }, depHour: 15, duration: 140, basePrice: 6200 },
+
+    // BOM ↔ GOI
+    { airlineCode: 'SJ', airline: 'SkyJet',      source: { city: 'Mumbai', code: 'BOM' }, destination: { city: 'Goa',    code: 'GOI' }, depHour: 11, duration: 75, basePrice: 2500 },
+    { airlineCode: 'SJ', airline: 'SkyJet',      source: { city: 'Goa',    code: 'GOI' }, destination: { city: 'Mumbai', code: 'BOM' }, depHour: 16, duration: 75, basePrice: 2500 },
   ];
 
-  for (const f of flightsData) {
-    const dep = new Date(now);
-    dep.setDate(dep.getDate() + f.daysOffset);
-    dep.setHours(f.depHour, 0, 0, 0);
-    const arr = new Date(dep.getTime() + f.duration * 60000);
+  // Generate one flight per route per day for days 1–7
+  const now = new Date();
+  let counter = 100;
 
-    const flight = await Flight.create({
-      flightNumber: f.flightNumber,
-      airline: f.airline,
-      airlineCode: f.airlineCode,
-      source: f.source,
-      destination: f.destination,
-      departureTime: dep,
-      arrivalTime: arr,
-      duration: f.duration,
-      basePrice: f.basePrice,
-      totalSeats: 60,
-      availableSeats: 60,
-      aircraft: 'Airbus A320',
-    });
-    await createSeats(flight._id, 60);
-    console.log(`✅ Created flight ${f.flightNumber}`);
+  for (let day = 1; day <= 7; day++) {
+    for (const route of baseRoutes) {
+      counter++;
+      const flightNumber = `FW${counter}`;
+
+      const dep = new Date(now);
+      dep.setDate(dep.getDate() + day);
+      dep.setHours(route.depHour, 0, 0, 0);
+      const arr = new Date(dep.getTime() + route.duration * 60000);
+
+      const flight = await Flight.create({
+        flightNumber,
+        airline: route.airline,
+        airlineCode: route.airlineCode,
+        source: route.source,
+        destination: route.destination,
+        departureTime: dep,
+        arrivalTime: arr,
+        duration: route.duration,
+        basePrice: route.basePrice,
+        totalSeats: 60,
+        availableSeats: 60,
+        aircraft: 'Airbus A320',
+      });
+      await createSeats(flight._id, 60);
+      console.log(`✅ Day +${day} | ${flightNumber} | ${route.source.code} → ${route.destination.code}`);
+    }
   }
 
   console.log('\n🎉 Seed complete!');
+  console.log(`   ${baseRoutes.length} routes × 7 days = ${baseRoutes.length * 7} flights`);
   console.log('Admin: admin@flywise.com / admin123');
   console.log('User:  user@flywise.com / user1234');
   process.exit(0);
