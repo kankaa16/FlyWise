@@ -106,7 +106,14 @@ await Promise.all([
     addOns: bookingData.addOns.outbound||[],
     totalPrice: outboundTotal,
     discount,
-    groupId
+    groupId,
+    priceBreakdown: {
+    basePrice: bookingData.outboundPricing?.basePrice,
+    taxes: bookingData.outboundPricing?.taxes,
+    mealTotal: bookingData.addOns?.outbound?.filter(a => a.type === 'MEAL').reduce((s,i)=>s+i.price,0) || 0,
+    baggageTotal: bookingData.addOns?.outbound?.filter(a => a.type === 'BAGGAGE').reduce((s,i)=>s+i.price,0) || 0,
+    totalPrice: outboundTotal
+  }
   }),
 
   //only create return if exists
@@ -118,7 +125,15 @@ await Promise.all([
         addOns: bookingData.addOns.return||[],
         totalPrice: returnTotal,
         discount,
-        groupId
+        groupId,
+        priceBreakdown: {
+    basePrice: bookingData.returnPricing?.basePrice,
+    taxes: bookingData.returnPricing?.taxes,
+    mealTotal: bookingData.addOns?.return?.filter(a => a.type === 'MEAL').reduce((s,i)=>s+i.price,0) || 0,
+    baggageTotal: bookingData.addOns?.return?.filter(a => a.type === 'BAGGAGE').reduce((s,i)=>s+i.price,0) || 0,
+    totalPrice: returnTotal
+  }
+
       })
     : Promise.resolve()
 

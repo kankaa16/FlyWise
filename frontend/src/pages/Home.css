@@ -333,3 +333,57 @@
   width: 60px;
   height: 60px;
 }
+
+.dest-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 8px;
+}
+.dest-row::-webkit-scrollbar { display: none; }
+
+.dest-card {
+  flex: 0 0 110px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.dest-circle {
+  width: 98px;
+  height: 120px;
+  border-radius: 39%;
+  margin: 7px auto 10px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s;
+  outline: 3.5px solid #cdd0d4; 
+  outline-offset: 0px;
+}
+.dest-card:hover .dest-circle { transform: scale(1.06); outline-color: var(--blue-400); }
+
+.dest-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dest-new {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--blue-600);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dest-name { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--blue-900); }
+.dest-price { font-size: 11px; color: var(--gray-400); margin-top: 2px; }

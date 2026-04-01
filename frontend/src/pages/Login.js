@@ -13,18 +13,25 @@ const Login = () => {
   const redirect = urlParams.get('redirect') || '/';
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      const user = await login(form.email, form.password);
-      toast.success(`Welcome back, ${user.name.split(' ')[0]}!`);
+  e.preventDefault();
+  try {
+    setLoading(true);
+    const user = await login(form.email, form.password);
+
+    toast.success(`Welcome back, ${user.name.split(' ')[0]}!`);
+
+    if (user.role === 'ADMIN') {
+      navigate('/admin');
+    } else {
       navigate(redirect);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed');
-    } finally {
-      setLoading(false);
     }
-  };
+
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Login failed');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="sky-page auth-page">

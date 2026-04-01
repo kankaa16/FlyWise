@@ -107,7 +107,7 @@ const downloadTicket = async () => {
             </div>
           </div>
           <div className="bc-price-block">
-            <div className="bc-price">₹{booking.priceBreakdown?.totalPrice?.toLocaleString('en-IN')}</div>
+            <div className="bc-price">₹{booking.priceBreakdown?.totalPrice?.toLocaleString('en-IN')||booking.totalPrice}</div>
             <div className="bc-price-label">Total Paid</div>
           </div>
         </div>
@@ -198,7 +198,9 @@ const downloadTicket = async () => {
 
         <div className="bc-pr total">
           <span>Total</span>
-          <span>₹{booking.priceBreakdown?.totalPrice}</span>
+          <span>
+  ₹{(booking.priceBreakdown?.totalPrice || booking.totalPrice || 0).toLocaleString('en-IN')}
+</span>
         </div>
       </div>
     </div>

@@ -88,7 +88,7 @@ const baggageTotal = cleanedAddOns
   }));
 
   console.log("FINAL ADDONS:", cleanedAddOns);
-  const { totalPrice, discount = 0 } = req.body;
+  const {discount = 0 } = req.body;
   const booking = await Booking.create({
     userId,
     flightId,
@@ -106,7 +106,7 @@ const baggageTotal = cleanedAddOns
       addOnTotal,
       originalPrice: pricing.totalPrice + addOnTotal,
       discount,
-      totalPrice: totalPrice
+      totalPrice: pricing.totalPrice + addOnTotal
     },
     bookingStatus: 'CONFIRMED',
     paymentStatus: 'PAID',

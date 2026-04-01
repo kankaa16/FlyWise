@@ -20,15 +20,15 @@ const PROMOS = [
 ];
 
 const DESTINATIONS = [
-  { name: 'Mumbai', code: 'BOM', emoji: '🌆', price: '₹2,500' },
-  { name: 'Delhi', code: 'DEL', emoji: '🏛️', price: '₹3,200', isNew: true },
-  { name: 'Goa', code: 'GOI', emoji: '🏖️', price: '₹2,200' },
-  { name: 'Bangalore', code: 'BLR', emoji: '🌿', price: '₹2,800', isNew: true },
-  { name: 'Hyderabad', code: 'HYD', emoji: '💎', price: '₹3,100' },
-  { name: 'Chennai', code: 'MAA', emoji: '🎭', price: '₹2,600' },
-  { name: 'Kolkata', code: 'CCU', emoji: '🌉', price: '₹3,400', isNew: true },
-  { name: 'Jaipur', code: 'JAI', emoji: '🏰', price: '₹2,900' },
-  { name: 'Dubai', code: 'DXB', emoji: '✨', price: '₹12,000', isNew: true },
+  { name: 'Mumbai', code: 'BOM', image: 'https://images.unsplash.com/photo-1666843527155-14ec5f016802?w=1600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bWFyaW5lJTIwZHJpdmV8ZW58MHx8MHx8fDA%3D', price: '₹2,500' },
+  { name: 'Delhi', code: 'DEL', image: 'https://images.unsplash.com/photo-1597040663342-45b6af3d91a5?w=1600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8ZGVsaGl8ZW58MHx8MHx8fDA%3D', price: '₹3,200', isNew: true },
+  { name: 'Goa', code: 'GOI', image: 'https://images.unsplash.com/photo-1614082242765-7c98ca0f3df3?w=1600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8Z29hfGVufDB8fDB8fHww', price: '₹2,200' },
+  { name: 'Bangalore', code: 'BLR', image: 'https://images.unsplash.com/photo-1698332137428-3c4296198e8f?w=1600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8YmFuZ2Fsb3JlfGVufDB8fDB8fHww', price: '₹2,800', isNew: true },
+  { name: 'Hyderabad', code: 'HYD', image: 'https://images.unsplash.com/photo-1657981630164-769503f3a9a8?w=1600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8aHlkZXJhYmFkfGVufDB8fDB8fHww', price: '₹3,100' },
+  { name: 'Chennai', code: 'MAA', image: 'https://plus.unsplash.com/premium_photo-1697730420879-dc2a8dbaa31f?w=1600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8Y2hlbm5haXxlbnwwfHwwfHx8MA%3D%3D', price: '₹2,600' },
+  { name: 'Kolkata', code: 'CCU', image: 'https://images.unsplash.com/photo-1589041127168-9b1915731dc3?w=1600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fGtvbGthdGF8ZW58MHx8MHx8fDA%3D', price: '₹3,400', isNew: true },
+  { name: 'Jaipur', code: 'JAI', image: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=1600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8amFpcHVyfGVufDB8fDB8fHww', price: '₹2,900' },
+  { name: 'Dubai', code: 'DXB', image: 'https://plus.unsplash.com/premium_photo-1697729914552-368899dc4757?w=1600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8ZHViYWl8ZW58MHx8MHx8fDA%3D', price: '₹12,000', isNew: true },
 ];
 
 const Home = () => {
@@ -178,15 +178,15 @@ const Home = () => {
         </div>
 
         {/* Destinations */}
-        <div className="section">
+         <div className="section">
           <div className="section-header">
-            <div className="section-title">Popular Destinations</div>
+            <div className="section-title"> Popular Destinations</div>
           </div>
           <div className="dest-row">
             {DESTINATIONS.map(d => (
               <div key={d.code} className="dest-card" onClick={() => setForm(f => ({ ...f, destination: d.name }))}>
                 <div className="dest-circle">
-                  <span className="dest-emoji">{d.emoji}</span>
+                    <img src={d.image}></img>
                   {d.isNew && <span className="dest-new">New</span>}
                 </div>
                 <div className="dest-name">{d.name}</div>
