@@ -62,15 +62,17 @@ describe("Booking", () => {
   });
 
   it("fail seat not locked", async () => {
-    await Seat.updateOne(
-  { seatNumber: "1A" },
-  {
-    status: "AVAILABLE",
-    lockedBy: null,
-    lockedAt: null,
-    lockExpiry: null
-  }
-);
+    await Seat.deleteMany({ flightId, seatNumber: "1A" });
+
+await Seat.create({
+  flightId,
+  seatNumber: "1A",
+  row: 1,
+  column: "A",
+  seatType: "WINDOW",
+  status: "AVAILABLE",
+  lockedBy: null
+});
 
     const res = await request(app)
       .post("/api/bookings")

@@ -79,7 +79,7 @@ describe("Seat Lock/Unlock - FIXED", () => {
       { seatNumber: "1A" },
       {
         status: "LOCKED",
-        lockedBy: otherUser.toString()
+        lockedBy: otherUser
       }
     );
 
