@@ -85,9 +85,9 @@ const Home = () => {
       <div className="search-card-wrap">
         <div className="card-glass search-card">
           <div className="trip-tabs">
-            {['one', 'round', 'multi'].map(t => (
+            {['one', 'round'].map(t => (
               <button key={t} className={`trip-tab${tripType === t ? ' active' : ''}`} onClick={() => setTripType(t)}>
-                {t === 'one' ? 'One Way' : t === 'round' ? 'Round Trip' : 'Multi-City'}
+                {t === 'one' ? 'One Way' : t === 'round' ? 'Round Trip':""}
               </button>
             ))}
           </div>

@@ -503,7 +503,7 @@ console.log("SENDING FLIGHT:", payload);
                   {/* Surcharge amount */}
                   <div className="form-group">
                     <label className="form-label">Surcharge (₹)</label>
-                    <input className="form-input" type="number" min="0" placeholder="1000" value={ruleForm.charge} onChange={e => ff('charge', e.target.value ? parseInt(e.target.value) : '')} required />
+                    <input className="form-input" type="number" min="0" placeholder="1000" value={ruleForm.charge} onChange={e => rf('charge', e.target.value ? parseInt(e.target.value) : '')} required />
                   </div>
 
                   {/* Active toggle */}
@@ -519,14 +519,14 @@ console.log("SENDING FLIGHT:", payload);
                   {ruleForm.type === 'DEMAND' && (
                     <div className="form-group">
                       <label className="form-label">Occupancy Threshold (%)</label>
-                      <input className="form-input" type="number" min="1" max="100" placeholder="70" value={ruleForm.threshold} onChange={e => ff('threshold', e.target.value ? parseInt(e.target.value) : '')}required />
+                      <input className="form-input" type="number" min="1" max="100" placeholder="70" value={ruleForm.threshold} onChange={e => rf('threshold', e.target.value ? parseInt(e.target.value) : '')}required />
                       <span className="form-hint">Surcharge applies when seats booked ≥ this %</span>
                     </div>
                   )}
                   {ruleForm.type === 'TIME' && (
                     <div className="form-group">
                       <label className="form-label">Hours Before Departure</label>
-                      <input className="form-input" type="number" min="1" placeholder="48" value={ruleForm.hoursBeforeDeparture} onChange={e => ff('hoursBeforeDeparture', e.target.value ? parseInt(e.target.value) : '')} required />
+                      <input className="form-input" type="number" min="1" placeholder="48" value={ruleForm.hoursBeforeDeparture} onChange={e => rf('hoursBeforeDeparture', e.target.value ? parseInt(e.target.value) : '')} required />
                       <span className="form-hint">Surcharge applies when booking within this window</span>
                     </div>
                   )}
